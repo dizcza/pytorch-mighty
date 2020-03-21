@@ -1,6 +1,9 @@
 .idea/
 data/
+!mighty/utils/data
 checkpoints/
 ignored/
 *.pyc
 *.lprof
+*.egg-info/
+dist/

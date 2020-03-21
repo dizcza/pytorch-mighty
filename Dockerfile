@@ -1,11 +1,11 @@
-FROM pytorch:latest
+FROM pytorch/pytorch:latest
 
 RUN apt-get update && apt-get install -y screen
 
-RUN if [ ! -d /workspace ]; then mkdir /workspace; fi
-COPY ./requirements.txt /workspace/
-RUN pip install -r /workspace/requirements.txt
+RUN mkdir -p /workspace/mighty
+COPY . /workspace/mighty/
+RUN pip install -e /workspace/mighty/
 
 ENV VISDOM_PORT 8098
 
-CMD screen -dmS visdom python -m visdom.server -port $VISDOM_PORT ; /bin/bash
+CMD screen -dmS visdom visdom -port $VISDOM_PORT ; /bin/bash

@@ -1,0 +1,10 @@
+recursive-include mighty *.py
+include requirements.txt
+include README.md
+include LICENSE
+include mighty/VERSION
+recursive-include doc *
+prune doc/_build
+prune mighty/data
+prune mighty/checkpoints
+recursive-exclude . *~

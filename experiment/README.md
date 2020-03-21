@@ -1,1 +1,0 @@
-The files in this directory are purely educational and don't relate much to the project.
