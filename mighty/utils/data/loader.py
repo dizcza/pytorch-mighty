@@ -13,17 +13,18 @@ class DataLoader:
         self.normalize = normalize
         self.batch_size = batch_size
 
+        transform = [torchvision.transforms.ToTensor()]
+        if self.normalize is not None:
+            transform.append(self.normalize)
+        self.transform = torchvision.transforms.Compose(transform)
+
     @property
     def num_workers(self):
         return int(os.environ.get('LOADER_WORKERS', 4))
 
     def get(self, train=True) -> torch.utils.data.DataLoader:
-        transform = [torchvision.transforms.ToTensor()]
-        if self.normalize is not None:
-            transform.append(self.normalize)
-        transform = torchvision.transforms.Compose(transform)
         dataset = self.dataset_cls(DATA_DIR, train=train, download=True,
-                                   transform=transform)
+                                   transform=self.transform)
         loader = torch.utils.data.DataLoader(dataset,
                                              batch_size=self.batch_size,
                                              shuffle=train,
@@ -32,8 +33,9 @@ class DataLoader:
 
     @property
     def eval(self):
-        train_loader = self.get(train=True)
-        eval_loader = torch.utils.data.DataLoader(dataset=train_loader.dataset,
+        dataset = self.dataset_cls(DATA_DIR, train=True, download=True,
+                                   transform=self.transform)
+        eval_loader = torch.utils.data.DataLoader(dataset,
                                                   batch_size=self.batch_size,
                                                   shuffle=False,
                                                   num_workers=self.num_workers)

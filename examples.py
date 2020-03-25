@@ -80,8 +80,8 @@ def train_grad(n_epoch=10, dataset_cls=MNIST):
                           optimizer=optimizer,
                           scheduler=scheduler)
     # trainer.restore()  # uncomment to restore the saved state
-    trainer.monitor.advanced_monitoring(level=MonitorLevel.SIGNAL_TO_NOISE)
-    trainer.train(n_epoch=n_epoch, mutual_info_layers=2)
+    trainer.monitor.advanced_monitoring(level=MonitorLevel.FULL)
+    trainer.train(n_epoch=n_epoch, mutual_info_layers=0, cache=True)
 
 
 def test(model, n_epoch=500, dataset_cls=MNIST):

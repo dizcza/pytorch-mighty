@@ -1,3 +1,4 @@
+import os
 import time
 from collections import defaultdict
 from functools import wraps
@@ -53,3 +54,18 @@ def timer_profile(func):
         return res
 
     return wrapped
+
+
+def how_many_samples_take(loader: torch.utils.data.DataLoader):
+    """
+    :param loader: train or test loader
+    :return: number of samples to draw from
+    """
+    n_samples_take = -1
+    is_train = getattr(loader.dataset, 'train', False)
+    if is_train:
+        # test dataset requires all samples
+        n_samples_take = int(os.environ.get("FULL_FORWARD_PASS_SIZE", -1))
+    if n_samples_take == -1:
+        n_samples_take = float('inf')
+    return n_samples_take

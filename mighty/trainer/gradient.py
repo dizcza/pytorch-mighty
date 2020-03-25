@@ -52,18 +52,17 @@ class TrainerGrad(Trainer):
     def train_batch(self, images, labels):
         self.optimizer.zero_grad()
         outputs = self.model(images)
-        loss = self.criterion(outputs, labels)
+        loss = self._get_loss(images, outputs, labels)
         loss.backward()
         self.optimizer.step(closure=None)
         return outputs, loss
 
-    def _epoch_finished(self, epoch, outputs, labels):
-        loss = super()._epoch_finished(epoch, outputs, labels)
+    def _epoch_finished(self, epoch, loss):
+        super()._epoch_finished(epoch, loss)
         if isinstance(self.scheduler, ReduceLROnPlateau):
             self.scheduler.step(metrics=loss, epoch=epoch)
         elif isinstance(self.scheduler, _LRScheduler):
             self.scheduler.step(epoch=epoch)
-        return loss
 
     def state_dict(self):
         state = super().state_dict()

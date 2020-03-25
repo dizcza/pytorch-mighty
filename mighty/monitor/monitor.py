@@ -242,14 +242,13 @@ class Monitor:
             ytype='log',
         ))
 
-    def update_accuracy_epoch(self, outputs, labels_true, mode):
-        labels_predicted = self.accuracy_measure.predict(outputs)
+    def update_accuracy_epoch(self, labels_pred, labels_true, mode):
         self.update_accuracy(
-            accuracy=calc_accuracy(labels_true, labels_predicted), mode=mode)
+            accuracy=calc_accuracy(labels_true, labels_pred), mode=mode)
         title = f"Confusion matrix '{mode}'"
         if len(labels_true.unique()) <= self.n_classes_format_ytickstep_1:
-            # don't plot huge matrix
-            confusion = confusion_matrix(labels_true, labels_predicted)
+            # don't plot huge matrices
+            confusion = confusion_matrix(labels_true, labels_pred)
             self.viz.heatmap(confusion, win=title, opts=dict(
                 title=title,
                 xlabel='Predicted label',
@@ -328,18 +327,16 @@ class Monitor:
         #     self.update_accuracy(accuracy=estimated_accuracy, mode=layer_name)
         self.mutual_info.plot(self.viz)
 
-    def epoch_finished(self, outputs, labels_true):
-        self.update_accuracy_epoch(outputs, labels_true, mode='train')
+    def epoch_finished(self):
         self.update_mutual_info()
         for monitored_function in self.functions:
             monitored_function(self.viz)
         self.update_grad_norm()
-        if not isinstance(self.accuracy_measure, AccuracyArgmax):
-            # the outputs are embedding vectors and not log softmax
-            self.update_sparsity(outputs, mode='full train')
-            self.update_density(outputs, mode='full train')
-            self.activations_heatmap(outputs, labels_true)
-            self.firing_frequency(outputs)
+        # if not isinstance(self.accuracy_measure, AccuracyArgmax):
+        #     # the outputs are embedding vectors and not log softmax
+        #     self.update_sparsity(outputs, mode='full train')
+        #     self.activations_heatmap(outputs, labels_true)
+        #     self.firing_frequency(outputs)
         if self._advanced_monitoring_level.value >= \
                 MonitorLevel.SIGNAL_TO_NOISE.value:
             self.update_gradient_signal_to_noise_ratio()
@@ -357,24 +354,13 @@ class Monitor:
                     monitor_level=self._advanced_monitoring_level)
 
     def update_sparsity(self, outputs, mode: str):
+        # L1 sparsity
         outputs = outputs.detach()
         sparsity = outputs.norm(p=1, dim=1).mean() / outputs.shape[1]
         self.viz.line_update(y=sparsity.cpu(), opts=dict(
             xlabel='Epoch',
             ylabel='L1 norm / size',
             title='Output sparsity',
-        ), name=mode)
-
-    def update_density(self, outputs, mode: str):
-        outputs = outputs.detach()
-        mean = outputs.mean(dim=0)
-        var = outputs.var(dim=0)
-        density = 1 / (var / (mean * mean + 1e-7) + 1)
-        density = density.mean()
-        self.viz.line_update(y=density.cpu(), opts=dict(
-            xlabel='Epoch',
-            ylabel='(mean / std) ^ 2',
-            title='Output density',
         ), name=mode)
 
     def update_initial_difference(self):
