@@ -15,19 +15,16 @@ def calc_accuracy(labels_true, labels_predicted) -> float:
 
 class Accuracy(ABC):
 
-    def fit(self, outputs_train, labels_train):
+    def reset(self):
+        pass
+
+    def partial_fit(self, outputs_batch, labels_batch):
         """
         If accuracy measure is not argmax (if the model doesn't end with a softmax layer),
         the output is embedding vector, which has to be stored and retrieved at prediction.
         :param outputs_train: model output on the train set
         :param labels_train: train set labels
         """
-        pass
-
-    def reset(self):
-        pass
-
-    def partial_fit(self, outputs_batch, labels_batch):
         pass
 
     def predict(self, outputs_test):
@@ -69,8 +66,10 @@ class AccuracyEmbedding(Accuracy):
     Prediction is based on the closest centroid ID.
     """
 
-    def __init__(self, metric='cosine'):
+    def __init__(self, metric='cosine', cache=False):
         self.metric = metric
+        self.cache = cache
+        self.input_cached = []
         self.centroids_dict = defaultdict(MeanOnlineVector)
 
     @property
@@ -81,6 +80,7 @@ class AccuracyEmbedding(Accuracy):
 
     def reset(self):
         self.centroids_dict.clear()
+        self.input_cached.clear()
 
     def extra_repr(self):
         return f'metric={self.metric}'
@@ -104,15 +104,22 @@ class AccuracyEmbedding(Accuracy):
         distances = torch.cat(distances, dim=1)
         return distances
 
-    def fit(self, outputs_train, labels_train):
-        self.reset()
-        self.partial_fit(outputs_train, labels_train)
-
     def partial_fit(self, outputs_batch, labels_batch):
         outputs_batch = outputs_batch.detach().cpu()
         for label in labels_batch.unique(sorted=True):
             self.centroids_dict[label.item()].update(
-                outputs_batch[labels_batch == label])
+                outputs_batch[labels_batch == label]
+            )
+        if self.cache:
+            self.input_cached.append(outputs_batch)
+
+    def predict_cached(self):
+        if not self.cache:
+            raise ValueError("Caching is turned off")
+        if len(self.input_cached) == 0:
+            raise ValueError("Empty cached input buffer")
+        input = torch.cat(self.input_cached,  dim=0)
+        return self.predict(input)
 
     def predict(self, outputs_test):
         argmin = self.distances(outputs_test).argmin(dim=1).cpu()

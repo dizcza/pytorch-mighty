@@ -151,9 +151,9 @@ class Trainer(ABC):
         return self.criterion(output, labels)
 
     def _on_forward_pass_batch(self, input, output, labels):
-        self.accuracy_measure.partial_fit(output, labels)
+        pass
 
-    def full_forward_pass(self, cache=False):
+    def full_forward_pass(self):
         mode_saved = self.model.training
         self.model.train(False)
         use_cuda = torch.cuda.is_available()
@@ -162,7 +162,6 @@ class Trainer(ABC):
         loss_online = MeanOnline()
         self.accuracy_measure.reset()
 
-        outputs_full = []
         labels_full = []
         with torch.no_grad():
             for inputs, labels in self.eval_batches():
@@ -170,16 +169,14 @@ class Trainer(ABC):
                     inputs = inputs.cuda()
                 outputs = self.model(inputs)
                 labels_full.append(labels)
-                if cache:
-                    outputs_full.append(outputs.cpu())
                 loss = self._get_loss(inputs, outputs, labels)
                 self._on_forward_pass_batch(inputs, outputs, labels)
+                self.accuracy_measure.partial_fit(outputs, labels)
                 loss_online.update(loss)
         labels_full = torch.cat(labels_full, dim=0)
 
-        if cache:
-            outputs_full = torch.cat(outputs_full, dim=0)
-            labels_pred = self.accuracy_measure.predict(outputs_full)
+        if getattr(self.accuracy_measure, 'cache', False):
+            labels_pred = self.accuracy_measure.predict_cached()
         else:
             labels_pred = []
             with torch.no_grad():
@@ -299,7 +296,7 @@ class Trainer(ABC):
                                  mode='batch')
 
     def train(self, n_epoch=10, epoch_update_step=1, mutual_info_layers=1,
-              adversarial=False, mask_explain=False, cache=False):
+              adversarial=False, mask_explain=False):
         """
         :param n_epoch: number of training epochs
         :param epoch_update_step: epoch step to run full evaluation
@@ -334,7 +331,7 @@ class Trainer(ABC):
         for epoch in range(self.timer.epoch, self.timer.epoch + n_epoch):
             self.train_epoch(epoch=epoch)
             if epoch % epoch_update_step == 0:
-                loss = self.full_forward_pass(cache=cache)
+                loss = self.full_forward_pass()
                 self.full_forward_pass_test()
                 self.monitor.epoch_finished()
                 if adversarial:
