@@ -169,8 +169,8 @@ class Monitor:
         self.viz.close()
         self.viz.prepare()
 
-    def register_func(self, *func: Callable):
-        self.functions.extend(func)
+    def register_func(self, func: Callable):
+        self.functions.append(func)
 
     def update_weight_histogram(self):
         for name, param_record in self.param_records.items():
@@ -332,11 +332,6 @@ class Monitor:
         for monitored_function in self.functions:
             monitored_function(self.viz)
         self.update_grad_norm()
-        # if not isinstance(self.accuracy_measure, AccuracyArgmax):
-        #     # the outputs are embedding vectors and not log softmax
-        #     self.update_sparsity(outputs, mode='full train')
-        #     self.activations_heatmap(outputs, labels_true)
-        #     self.firing_frequency(outputs)
         if self._advanced_monitoring_level.value >= \
                 MonitorLevel.SIGNAL_TO_NOISE.value:
             self.update_gradient_signal_to_noise_ratio()
@@ -352,16 +347,6 @@ class Monitor:
             if param.requires_grad and not name.endswith('.bias'):
                 self.param_records[name] = ParamRecord(param,
                     monitor_level=self._advanced_monitoring_level)
-
-    def update_sparsity(self, outputs, mode: str):
-        # L1 sparsity
-        outputs = outputs.detach()
-        sparsity = outputs.norm(p=1, dim=1).mean() / outputs.shape[1]
-        self.viz.line_update(y=sparsity.cpu(), opts=dict(
-            xlabel='Epoch',
-            ylabel='L1 norm / size',
-            title='Output sparsity',
-        ), name=mode)
 
     def update_initial_difference(self):
         legend = []
@@ -395,65 +380,3 @@ class Monitor:
                 title='Gradient norm',
                 legend=legend,
             ))
-
-    def activations_heatmap(self, outputs: torch.Tensor, labels: torch.Tensor):
-        """
-        We'd like the last layer activations heatmap to be different for each
-        corresponding label.
-
-        :param outputs: the last layer activations
-        :param labels: corresponding labels
-        """
-
-        def compute_manhattan_dist(tensor: torch.FloatTensor) -> float:
-            l1_dist = pairwise.manhattan_distances(tensor.cpu())
-            upper_triangle_idx = np.triu_indices_from(l1_dist, k=1)
-            l1_dist = l1_dist[upper_triangle_idx].mean()
-            return l1_dist
-
-        outputs = outputs.detach()
-        class_centroids = []
-        std_centroids = []
-        label_names = []
-        for label in sorted(labels.unique()):
-            outputs_label = outputs[labels == label]
-            std_centroids.append(outputs_label.std(dim=0))
-            class_centroids.append(outputs_label.mean(dim=0))
-            label_names.append(str(label.item()))
-        win = "Last layer activations heatmap"
-        class_centroids = torch.stack(class_centroids, dim=0)
-        std_centroids = torch.stack(std_centroids, dim=0)
-        opts = dict(
-            title=f"{win}. Epoch {self.timer.epoch}",
-            xlabel='Embedding dimension',
-            ylabel='Label',
-            rownames=label_names,
-        )
-        if class_centroids.shape[0] <= self.n_classes_format_ytickstep_1:
-            opts.update(ytickstep=1)
-        self.viz.heatmap(class_centroids, win=win, opts=opts)
-        self.save_heatmap(class_centroids, win=win, opts=opts)
-        normalizer = class_centroids.norm(p=1, dim=1).mean()
-        outer_distance = compute_manhattan_dist(class_centroids) / normalizer
-        std = std_centroids.norm(p=1, dim=1).mean() / normalizer
-        self.viz.line_update(y=[outer_distance.item(), std.item()], opts=dict(
-            xlabel='Epoch',
-            ylabel='Mean pairwise distance (normalized)',
-            legend=['inter-distance', 'intra-STD'],
-            title='How much do patterns differ in L1 measure?',
-        ))
-
-    @ScheduleStep(epoch_step=20)
-    def save_heatmap(self, heatmap, win, opts):
-        self.viz.heatmap(heatmap, win=f"{win}. Epoch {self.timer.epoch}",
-                         opts=opts)
-
-    def firing_frequency(self, outputs):
-        frequency = outputs.detach().mean(dim=0)
-        frequency.unsqueeze_(dim=0)
-        title = 'Neuron firing frequency'
-        self.viz.heatmap(frequency, win=title, opts=dict(
-            title=title,
-            xlabel='Embedding dimension',
-            rownames=['Last layer'],
-        ))

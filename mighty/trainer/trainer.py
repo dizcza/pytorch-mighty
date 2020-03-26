@@ -150,6 +150,9 @@ class Trainer(ABC):
     def _get_loss(self, input, output, labels):
         return self.criterion(output, labels)
 
+    def _on_forward_pass_batch(self, input, output, labels):
+        self.accuracy_measure.partial_fit(output, labels)
+
     def full_forward_pass(self, cache=False):
         mode_saved = self.model.training
         self.model.train(False)
@@ -170,7 +173,7 @@ class Trainer(ABC):
                 if cache:
                     outputs_full.append(outputs.cpu())
                 loss = self._get_loss(inputs, outputs, labels)
-                self.accuracy_measure.partial_fit(outputs, labels)
+                self._on_forward_pass_batch(inputs, outputs, labels)
                 loss_online.update(loss)
         labels_full = torch.cat(labels_full, dim=0)
 

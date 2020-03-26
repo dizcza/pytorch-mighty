@@ -4,7 +4,7 @@ from collections import defaultdict
 import torch
 import torch.utils.data
 
-from mighty.monitor.var_online import MeanOnlineBatch
+from mighty.monitor.var_online import MeanOnlineVector
 from mighty.utils.algebra import compute_distance
 
 
@@ -71,10 +71,16 @@ class AccuracyEmbedding(Accuracy):
 
     def __init__(self, metric='cosine'):
         self.metric = metric
-        self.centroids = defaultdict(MeanOnlineBatch)
+        self.centroids_dict = defaultdict(MeanOnlineVector)
+
+    @property
+    def centroids(self):
+        centroids = tuple(c.get_mean() for c in self.centroids_dict.values())
+        centroids = torch.stack(centroids, dim=0)
+        return centroids
 
     def reset(self):
-        self.centroids.clear()
+        self.centroids_dict.clear()
 
     def extra_repr(self):
         return f'metric={self.metric}'
@@ -84,10 +90,8 @@ class AccuracyEmbedding(Accuracy):
         :param outputs_test: (B, D) embeddings tensor
         :return: (B, n_classes) distance matrix to each centroid
         """
-        centroids = tuple(c.get_mean() for c in self.centroids.values())
-        centroids = torch.stack(centroids, dim=0)
-        assert len(centroids) > 0, "Fit the classifier first"
-        centroids = torch.as_tensor(centroids, device=outputs_test.device)
+        assert len(self.centroids_dict) > 0, "Fit the classifier first"
+        centroids = torch.as_tensor(self.centroids, device=outputs_test.device)
         distances = []
         outputs_test = outputs_test.unsqueeze(dim=1)  # (B, 1, D)
         centroids = centroids.unsqueeze(dim=0)  # (1, n_classes, D)
@@ -107,12 +111,12 @@ class AccuracyEmbedding(Accuracy):
     def partial_fit(self, outputs_batch, labels_batch):
         outputs_batch = outputs_batch.detach().cpu()
         for label in labels_batch.unique(sorted=True):
-            self.centroids[label.item()].update(
+            self.centroids_dict[label.item()].update(
                 outputs_batch[labels_batch == label])
 
     def predict(self, outputs_test):
         argmin = self.distances(outputs_test).argmin(dim=1).cpu()
-        labels_stored = tuple(self.centroids.keys())
+        labels_stored = tuple(self.centroids_dict.keys())
         labels_stored = torch.IntTensor(labels_stored)
         labels_predicted = labels_stored[argmin]
         return labels_predicted

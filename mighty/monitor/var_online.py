@@ -5,6 +5,7 @@ import torch.utils.data
 class MeanOnline:
     """
     Online updating sample mean.
+    Works with scalars, vectors, and n-dimensional tensors.
     """
 
     def __init__(self, tensor=None):
@@ -31,7 +32,10 @@ class MeanOnline:
         self.count = 0
 
 
-class MeanOnlineBatch(MeanOnline):
+class MeanOnlineVector(MeanOnline):
+    """
+    Updates 1d vector mean from a batch of vectors (2d tensor).
+    """
 
     def update(self, new_tensor):
         batch_size = new_tensor.shape[0]
