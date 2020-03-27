@@ -40,3 +40,7 @@ class DataLoader:
                                                   shuffle=False,
                                                   num_workers=self.num_workers)
         return eval_loader
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.dataset_cls.__name__}, " \
+               f"normalize={self.normalize})"

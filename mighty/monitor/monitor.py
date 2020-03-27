@@ -380,3 +380,10 @@ class Monitor:
                 title='Gradient norm',
                 legend=legend,
             ))
+
+    def plot_psnr(self, psnr):
+        self.viz.line_update(y=psnr, opts=dict(
+            xlabel='Epoch',
+            ylabel='PSNR',
+            title='Peak signal-to-noise ratio',
+        ))

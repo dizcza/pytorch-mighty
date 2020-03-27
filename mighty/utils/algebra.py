@@ -38,3 +38,38 @@ def onehot(y_labels):
     y_onehot = torch.zeros(y_labels.shape[0], n_classes, dtype=torch.int64)
     y_onehot[torch.arange(y_onehot.shape[0]), y_labels] = 1
     return y_onehot
+
+
+def compute_psnr(signal_orig, signal_estimated):
+    """
+    Computes the Peak signal-to-noise ratio between two signals (flattened
+    images).
+
+    Parameters
+    ----------
+    signal_orig, signal_estimated : torch.Tensor
+        A vector or a batch of vectors or images.
+
+    Returns
+    -------
+    psnr : torch.Tensor
+        A scalar tensor that holds (mean) PSNR value.
+
+    """
+    signal_orig = signal_orig.detach()
+    signal_estimated = signal_estimated.detach()
+    if signal_orig.ndim == 1:
+        signal_orig = signal_orig.unsqueeze(dim=0)
+    if signal_estimated.ndim == 1:
+        signal_estimated = signal_estimated.unsqueeze(dim=0)
+    signal_orig = signal_orig.flatten(start_dim=1)
+    signal_estimated = signal_estimated.flatten(start_dim=1)
+    if signal_orig.shape != signal_estimated.shape:
+        raise ValueError("Input signals must have the same shape.")
+
+    dynamic_range = signal_orig.max(dim=1).values - \
+                    signal_orig.min(dim=1).values
+    mse_val = F.mse_loss(signal_orig, signal_estimated,
+                         reduction='none').mean(dim=1)
+    psnr = 10 * torch.log10(dynamic_range ** 2 / mse_val).mean()
+    return psnr

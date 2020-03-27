@@ -2,6 +2,7 @@ import time
 import warnings
 from abc import ABC, abstractmethod
 from pathlib import Path
+from typing import Dict
 
 import torch
 import torch.nn as nn
@@ -66,6 +67,7 @@ class Trainer(ABC):
                 accuracy_measure = AccuracyArgmax()
         self.accuracy_measure = accuracy_measure
         self.monitor = self._init_monitor(mutual_info)
+        self.online = self._init_online_measures()
 
         images, labels = next(iter(self.train_loader))
         self.mask_trainer = MaskTrainer(accuracy_measure=self.accuracy_measure,
@@ -80,6 +82,7 @@ class Trainer(ABC):
 
     def log_trainer(self):
         self.monitor.log(f"Criterion: {self.criterion}")
+        self.monitor.log(repr(self.data_loader))
         self.monitor.log(repr(self.mask_trainer))
 
     def _init_monitor(self, mutual_info) -> Monitor:
@@ -90,6 +93,9 @@ class Trainer(ABC):
             normalize_inverse=normalize_inverse
         )
         return monitor
+
+    def _init_online_measures(self) -> Dict[str, MeanOnline]:
+        return dict()
 
     @abstractmethod
     def train_batch(self, images, labels):
