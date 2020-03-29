@@ -142,6 +142,7 @@ class Trainer(ABC):
     def eval_batches(self, verbose=False):
         loader = self.data_loader.eval
         n_samples_take = how_many_samples_take(train=True)
+        n_samples_take = min(n_samples_take, len(self.train_loader.dataset))
         n_batches = math.ceil(n_samples_take / self.data_loader.batch_size)
         for batch_id, (images, labels) in tqdm(
                 enumerate(iter(loader)),
@@ -169,19 +170,26 @@ class Trainer(ABC):
         self.accuracy_measure.reset()
 
         labels_full = []
+        labels_pred = []
         with torch.no_grad():
             for inputs, labels in self.eval_batches(verbose=True):
                 if use_cuda:
                     inputs = inputs.cuda()
                 outputs = self.model(inputs)
                 labels_full.append(labels)
+                if isinstance(self.accuracy_measure, AccuracyArgmax):
+                    # softmax
+                    labels_pred.append(self.accuracy_measure.predict(outputs))
                 loss = self._get_loss(inputs, outputs, labels)
                 self._on_forward_pass_batch(inputs, outputs, labels)
                 self.accuracy_measure.partial_fit(outputs, labels)
                 loss_online.update(loss)
         labels_full = torch.cat(labels_full, dim=0)
 
-        if getattr(self.accuracy_measure, 'cache', False):
+        if len(labels_pred) > 0:
+            # softmax
+            labels_pred = torch.cat(labels_pred, dim=0)
+        elif getattr(self.accuracy_measure, 'cache', False):
             labels_pred = self.accuracy_measure.predict_cached()
         else:
             labels_pred = []

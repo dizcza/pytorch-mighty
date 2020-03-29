@@ -60,10 +60,10 @@ def compute_psnr(signal_orig, signal_estimated):
     signal_estimated = signal_estimated.detach()
     if signal_orig.ndim == 1:
         signal_orig = signal_orig.unsqueeze(dim=0)
-    if signal_estimated.ndim == 1:
-        signal_estimated = signal_estimated.unsqueeze(dim=0)
     signal_orig = signal_orig.flatten(start_dim=1)
     signal_estimated = signal_estimated.flatten(start_dim=1)
+    if signal_estimated.ndim == 1:
+        signal_estimated = signal_estimated.unsqueeze(dim=0)
     if signal_orig.shape != signal_estimated.shape:
         raise ValueError("Input signals must have the same shape.")
 

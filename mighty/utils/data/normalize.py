@@ -1,6 +1,7 @@
 import torch
 import torch.utils.data
-from torchvision import transforms, datasets
+from torchvision import transforms
+from torchvision.datasets import MNIST
 from tqdm import tqdm
 
 from mighty.monitor.var_online import VarianceOnline
@@ -34,8 +35,10 @@ class _NormalizeTensor:
         Returns:
             Tensor: Normalized Tensor image.
         """
-        mean = torch.as_tensor(self.mean, dtype=torch.float32, device=tensor.device)
-        std = torch.as_tensor(self.std, dtype=torch.float32, device=tensor.device)
+        mean = torch.as_tensor(self.mean, dtype=torch.float32,
+                               device=tensor.device)
+        std = torch.as_tensor(self.std, dtype=torch.float32,
+                              device=tensor.device)
         tensor = tensor.clone()
         tensor.sub_(mean).div_(std)
         return tensor
@@ -70,7 +73,8 @@ class NormalizeInverse(_NormalizeTensor):
 
 
 def get_normalize_inverse(normalize_transform):
-    if isinstance(normalize_transform, (transforms.Normalize, _NormalizeTensor)):
+    if isinstance(normalize_transform,
+                  (transforms.Normalize, _NormalizeTensor)):
         return NormalizeInverse(mean=normalize_transform.mean,
                                 std=normalize_transform.std)
     return None
@@ -81,14 +85,16 @@ def dataset_mean_std(dataset_cls: type):
     :param dataset_cls: class type of torch.utils.data.Dataset
     :return: samples' mean and std per channel, estimated from a training set
     """
-    mean_std_file = (DATA_DIR / "mean_std" / dataset_cls.__name__).with_suffix('.pt')
+    mean_std_file = (DATA_DIR / "mean_std" / dataset_cls.__name__
+                     ).with_suffix('.pt')
     if not mean_std_file.exists():
         dataset = dataset_cls(DATA_DIR, train=True, download=True,
                               transform=transforms.ToTensor())
         loader = torch.utils.data.DataLoader(dataset, batch_size=32,
                                              shuffle=False, num_workers=4)
         var_online = VarianceOnline()
-        for images, labels in tqdm(loader,
+        for images, labels in tqdm(
+                loader,
                 desc=f"{dataset_cls.__name__}: running online mean, std"):
             for image in images:
                 var_online.update(new_tensor=image)
@@ -101,7 +107,7 @@ def dataset_mean_std(dataset_cls: type):
     return mean, std
 
 
-def visualize_mean_std(dataset_cls=datasets.MNIST):
+def visualize_mean_std(dataset_cls=MNIST):
     """
     Plots dataset mean and std, averaged across channels.
     Run as module: 'python -m monitor.var_online'.
@@ -119,4 +125,4 @@ def visualize_mean_std(dataset_cls=datasets.MNIST):
 
 
 if __name__ == '__main__':
-    visualize_mean_std(dataset_cls=datasets.MNIST)
+    visualize_mean_std(dataset_cls=MNIST)
