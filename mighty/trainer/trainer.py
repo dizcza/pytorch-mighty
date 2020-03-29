@@ -70,10 +70,6 @@ class Trainer(ABC):
         self.monitor = self._init_monitor(mutual_info)
         self.online = self._init_online_measures()
 
-        images, labels = next(iter(self.train_loader))
-        self.mask_trainer = MaskTrainer(accuracy_measure=self.accuracy_measure,
-                                        image_shape=images[0].shape)
-
     @property
     def checkpoint_path(self):
         return self.checkpoint_dir / (self.env_name + '.pt')
@@ -84,7 +80,6 @@ class Trainer(ABC):
     def log_trainer(self):
         self.monitor.log(f"Criterion: {self.criterion}")
         self.monitor.log(repr(self.data_loader))
-        self.monitor.log(repr(self.mask_trainer))
 
     def _init_monitor(self, mutual_info) -> Monitor:
         normalize_inverse = get_normalize_inverse(self.data_loader.normalize)
@@ -242,6 +237,8 @@ class Trainer(ABC):
         Train mask to see what part of the image is crucial from the network perspective.
         """
         images, labels = next(iter(self.train_loader))
+        mask_trainer = MaskTrainer(self.accuracy_measure,
+                                   image_shape=images[0].shape)
         mode_saved = prepare_eval(self.model)
         if torch.cuda.is_available():
             images = images.cuda()
@@ -251,7 +248,7 @@ class Trainer(ABC):
         sample_max_proba = proba_max.argmax()
         image = images[sample_max_proba]
         label = labels[sample_max_proba]
-        self.monitor.plot_mask(self.model, mask_trainer=self.mask_trainer,
+        self.monitor.plot_mask(self.model, mask_trainer=mask_trainer,
                                image=image, label=label)
         mode_saved.restore(self.model)
         return image, label
