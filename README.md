@@ -1,12 +1,14 @@
 # pytorch-mighty
 
-The Mighty Monitor Trainer for your pytorch models.
+The Mighty Monitor Trainer for your pytorch models. Powered by [Visdom](https://github.com/facebookresearch/visdom).
+
+Requires Python 3.6+
 
 ### Quick start
 
 1. Install [pytorch](https://pytorch.org/)
 2. `$ pip install pytorch-mighty`
-3. `$ visdom -port 8097` - start visdom server on port 8097
+3. `$ python -m visdom.server -port 8097` - start visdom server on port 8097
 4. In a separate terminal, run `python examples.py`
 5. Navigate to http://localhost:8097 to see the training progress.
 6. Check-out more examples on [http://85.217.171.57:8097](http://85.217.171.57:8097/). Give your browser a few minutes to parse the json data.
@@ -36,4 +38,4 @@ The Mighty Monitor Trainer for your pytorch models.
 ### Projects that use pytorch-mighty
 
 * [MCMC_BinaryNet](https://github.com/dizcza/MCMC_BinaryNet) - Markov Chain Monte Carlo binary networks optimization.
-* [EmbedderSDR](https://github.com/dizcza/EmbedderSDR) - encode images into binary Sparse Distributed Representation.
+* [EmbedderSDR](https://github.com/dizcza/EmbedderSDR) - encode images into binary Sparse Distributed Representation ([SDR](https://discourse.numenta.org/t/sparse-distributed-representations/2150)).

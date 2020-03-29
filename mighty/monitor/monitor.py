@@ -199,12 +199,11 @@ class Monitor:
             snr = mean / (std + 1e-6)
             snr /= param_norm
             snr.pow_(2)
-            # leave 95 % confidence interval
-            snr.clamp_max_(snr.mean() + 2 * snr.std())
             self.viz.histogram(X=snr.view(-1), win=name, opts=dict(
-                xlabel='Param SNR',
+                xlabel='(mean/std)^2',
                 ylabel='# bins (distribution)',
                 title=name,
+                xtype='log',
             ))
 
     def update_gradient_signal_to_noise_ratio(self):

@@ -7,6 +7,7 @@ from typing import Dict
 import torch
 import torch.nn as nn
 import torch.utils.data
+import math
 from tqdm import tqdm
 
 from mighty.loss import PairLoss
@@ -143,14 +144,18 @@ class Trainer(ABC):
         print(f"Restored model state from {checkpoint_path}.")
         return checkpoint_state
 
-    def eval_batches(self):
+    def eval_batches(self, verbose=False):
         loader = self.data_loader.eval
-        n_samples_take = how_many_samples_take(loader)
-        n_taken = 0
-        for images, labels in iter(loader):
-            if n_taken > n_samples_take:
+        n_samples_take = how_many_samples_take(train=True)
+        n_batches = math.ceil(n_samples_take / self.data_loader.batch_size)
+        for batch_id, (images, labels) in tqdm(
+                enumerate(iter(loader)),
+                desc="Full forward pass (eval)",
+                total=n_batches,
+                disable=not verbose,
+                leave=False):
+            if batch_id >= n_batches:
                 break
-            n_taken += len(labels)
             yield images, labels
 
     def _get_loss(self, input, output, labels):
@@ -170,7 +175,7 @@ class Trainer(ABC):
 
         labels_full = []
         with torch.no_grad():
-            for inputs, labels in self.eval_batches():
+            for inputs, labels in self.eval_batches(verbose=True):
                 if use_cuda:
                     inputs = inputs.cuda()
                 outputs = self.model(inputs)
