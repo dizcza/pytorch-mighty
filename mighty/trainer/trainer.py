@@ -58,6 +58,7 @@ class Trainer(ABC):
                         f"{data_loader.dataset_cls.__name__} " \
                         f"{self.__class__.__name__} " \
                         f"{criterion.__class__.__name__}"
+        env_suffix = env_suffix.lstrip(' ')
         if env_suffix:
             self.env_name = f'{self.env_name} {env_suffix}'
         if accuracy_measure is None:
@@ -239,6 +240,8 @@ class Trainer(ABC):
 
     def _epoch_finished(self, epoch, loss):
         self.save()
+        for online_measure in self.online.values():
+            online_measure.reset()
 
     def train_mask(self):
         """

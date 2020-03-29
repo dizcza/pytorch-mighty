@@ -58,11 +58,11 @@ class TrainerGrad(Trainer):
         return outputs, loss
 
     def _epoch_finished(self, epoch, loss):
-        super()._epoch_finished(epoch, loss)
         if isinstance(self.scheduler, ReduceLROnPlateau):
             self.scheduler.step(metrics=loss, epoch=epoch)
         elif isinstance(self.scheduler, _LRScheduler):
             self.scheduler.step(epoch=epoch)
+        super()._epoch_finished(epoch, loss)
 
     def state_dict(self):
         state = super().state_dict()
