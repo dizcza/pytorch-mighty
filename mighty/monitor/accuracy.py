@@ -4,7 +4,7 @@ from collections import defaultdict
 import torch
 import torch.utils.data
 
-from mighty.monitor.var_online import MeanOnlineVector
+from mighty.monitor.var_online import MeanOnlineBatch
 from mighty.utils.algebra import compute_distance
 
 
@@ -70,7 +70,7 @@ class AccuracyEmbedding(Accuracy):
         self.metric = metric
         self.cache = cache
         self.input_cached = []
-        self.centroids_dict = defaultdict(MeanOnlineVector)
+        self.centroids_dict = defaultdict(MeanOnlineBatch)
 
     @property
     def centroids(self):

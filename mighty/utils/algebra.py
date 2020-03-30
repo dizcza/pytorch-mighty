@@ -73,3 +73,25 @@ def compute_psnr(signal_orig, signal_estimated):
                          reduction='none').mean(dim=1)
     psnr = 10 * torch.log10(dynamic_range ** 2 / mse_val).mean()
     return psnr
+
+
+def compute_sparsity(tensor):
+    """
+    Compute L1 sparsity of the input tensor.
+
+    Parameters
+    ----------
+    tensor : torch.Tensor
+        (N,) or (B, N) tensor array.
+
+    Returns
+    -------
+    sparsity : torch.Tensor
+        L1 sparsity of `tensor`.
+
+    """
+    if tensor.ndim == 1:
+        # make a batch of size 1
+        tensor = tensor.unsqueeze(dim=0)
+    sparsity = tensor.norm(p=1, dim=1).mean() / tensor.shape[1]
+    return sparsity.squeeze()

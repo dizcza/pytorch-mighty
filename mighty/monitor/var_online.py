@@ -21,7 +21,7 @@ class MeanOnline:
         else:
             self.mean += (new_tensor - self.mean) / self.count
 
-    def get_mean(self):
+    def get_mean(self) -> torch.Tensor:
         if self.mean is None:
             return None
         else:
@@ -32,7 +32,7 @@ class MeanOnline:
         self.count = 0
 
 
-class MeanOnlineVector(MeanOnline):
+class MeanOnlineBatch(MeanOnline):
     """
     Updates 1d vector mean from a batch of vectors (2d tensor).
     """
@@ -65,7 +65,7 @@ class VarianceOnline(MeanOnline):
             self.var = (self.count - 2) / (self.count - 1) * self.var + \
                        torch.pow(new_tensor - self.mean, 2) / self.count
 
-    def get_std(self):
+    def get_std(self) -> torch.Tensor:
         if self.var is None:
             return None
         else:

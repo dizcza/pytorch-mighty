@@ -34,12 +34,13 @@ class VisdomMighty(visdom.Visdom):
 
     def line_update(self, y: Union[float, List[float]], opts: dict, name=None):
         y = np.array([y])
-        size = y.shape[-1]
-        if size == 0:
+        n_lines = y.shape[-1]
+        if n_lines == 0:
             return
-        if y.ndim > 1 and size == 1:
+        if y.ndim > 1 and n_lines == 1:
+            # visdom expects 1d array for a single line plot
             y = y[0]
-        x = np.full_like(y, self.timer.epoch_progress())
+        x = np.full_like(y, self.timer.epoch_progress(), dtype=np.float32)
         # hack to make window names consistent if the user forgets to specify
         # the title
         win = opts.get('title', str(opts))
