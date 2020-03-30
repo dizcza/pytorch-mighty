@@ -62,7 +62,7 @@ class MINE_Trainer:
     def __init__(self, mine_model: nn.Module, learning_rate=1e-3,
                  smooth_filter_size=30):
         if torch.cuda.is_available():
-            mine_model = mine_model.cuda()
+            mine_model.cuda()
         self.mine_model = mine_model
         self.optimizer = torch.optim.Adam(self.mine_model.parameters(),
                                           lr=learning_rate)

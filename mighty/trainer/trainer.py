@@ -44,7 +44,7 @@ class Trainer(ABC):
         :param mutual_info: mutual information estimator
         """
         if torch.cuda.is_available():
-            model = model.cuda()
+            model.cuda()
         self.model = model
         self.criterion = criterion
         self.data_loader = data_loader
@@ -165,8 +165,6 @@ class Trainer(ABC):
         mode_saved = self.model.training
         self.model.train(False)
         use_cuda = torch.cuda.is_available()
-        if use_cuda:
-            self.model.cuda()
         loss_online = MeanOnline()
         self.accuracy_measure.reset()
 
