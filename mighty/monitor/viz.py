@@ -14,7 +14,9 @@ class VisdomMighty(visdom.Visdom):
         port = int(os.environ.get('VISDOM_PORT', 8097))
         server = os.environ.get('VISDOM_SERVER', 'http://localhost')
         env = env.replace('_', '-')  # visdom things
-        super().__init__(env=env, server=server, port=port)
+        super().__init__(env=env, server=server, port=port,
+                         username=os.environ.get('VISDOM_USER', None),
+                         password=os.environ.get('VISDOM_PASSWORD', None))
         print(f"Monitor is opened at {self.server}:{self.port}. "
               f"Choose environment '{self.env}'.")
         self.timer = timer
