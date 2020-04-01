@@ -1,3 +1,5 @@
+from .autoencoder import TrainerAutoencoder
+from .embedding import TrainerEmbedding
 from .gradient import TrainerGrad
-from .test import Test
 from .mask import MaskTrainer
+from .test import Test

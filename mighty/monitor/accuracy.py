@@ -78,12 +78,16 @@ class AccuracyEmbedding(Accuracy):
         centroids = torch.stack(centroids, dim=0)
         return centroids
 
+    @property
+    def is_fit(self):
+        return len(self.centroids_dict) > 0
+
     def reset(self):
         self.centroids_dict.clear()
         self.input_cached.clear()
 
     def extra_repr(self):
-        return f'metric={self.metric}'
+        return f'metric={self.metric}, cache={self.cache}'
 
     def distances(self, outputs_test):
         """
@@ -132,3 +136,22 @@ class AccuracyEmbedding(Accuracy):
         distances = self.distances(outputs_test)
         proba = 1 - distances / distances.sum(dim=1).unsqueeze(1)
         return proba
+
+
+class AccuracyAutoencoder(AccuracyEmbedding):
+
+    def partial_fit(self, outputs_batch, labels_batch):
+        latent, reconstructed = outputs_batch
+        super().partial_fit(latent, labels_batch)
+
+    def predict_cached(self):
+        if not self.cache:
+            raise ValueError("Caching is turned off")
+        if len(self.input_cached) == 0:
+            raise ValueError("Empty cached input buffer")
+        input = torch.cat(self.input_cached,  dim=0)
+        return super().predict(input)
+
+    def predict(self, outputs_test):
+        latent, reconstructed = outputs_test
+        return super().predict(latent)

@@ -1,11 +1,11 @@
 from typing import Union
 
 import torch.nn as nn
-import torch.utils.data
 from torch.optim.lr_scheduler import _LRScheduler, ReduceLROnPlateau
+from torch.optim.optimizer import Optimizer
 
-from .trainer import Trainer
 from mighty.utils.data import DataLoader
+from .trainer import Trainer
 
 
 class TrainerGrad(Trainer):
@@ -13,9 +13,12 @@ class TrainerGrad(Trainer):
     Default gradient descent trainer with full float precision.
     """
 
-    def __init__(self, model: nn.Module, criterion: nn.Module, data_loader: DataLoader,
-                 optimizer: torch.optim.Optimizer,
-                 scheduler: Union[_LRScheduler, ReduceLROnPlateau, None] = None,
+    def __init__(self,
+                 model: nn.Module,
+                 criterion: nn.Module,
+                 data_loader: DataLoader,
+                 optimizer: Optimizer,
+                 scheduler: Union[_LRScheduler, ReduceLROnPlateau] = None,
                  **kwargs):
         """
         :param model: NN model

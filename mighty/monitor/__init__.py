@@ -1,1 +1,1 @@
-from .monitor import MonitorLevel, Monitor
+from .monitor import MonitorLevel, Monitor, MonitorAutoenc, MonitorEmbedding

@@ -28,10 +28,14 @@ from mighty.utils.prepare import prepare_eval
 class Trainer(ABC):
     watch_modules = (nn.Linear, nn.Conv2d)
 
-    def __init__(self, model: nn.Module, criterion: nn.Module,
-                 data_loader: DataLoader, accuracy_measure: Accuracy = None,
+    def __init__(self,
+                 model: nn.Module,
+                 criterion: nn.Module,
+                 data_loader: DataLoader,
+                 accuracy_measure: Accuracy = None,
                  mutual_info=MutualInfoKMeans(),
-                 env_suffix='', checkpoint_dir=CHECKPOINTS_DIR):
+                 env_suffix='',
+                 checkpoint_dir=CHECKPOINTS_DIR):
         """
         :param model: NN model
         :param criterion: loss function
