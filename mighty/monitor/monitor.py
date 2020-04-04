@@ -113,7 +113,6 @@ class Monitor:
         :param env_name: Visdom environment name
         """
         self.viz = VisdomMighty(env=env_name)
-        self.viz.prepare()
 
     def log_model(self, model: nn.Module, space='-'):
         lines = []
@@ -167,7 +166,6 @@ class Monitor:
 
     def clear(self):
         self.viz.close()
-        self.viz.prepare()
 
     def register_func(self, func: Callable):
         self.functions.append(func)

@@ -22,10 +22,6 @@ class VisdomMighty(visdom.Visdom):
         self.timer = timer
         self.legends = defaultdict(list)
 
-    def prepare(self):
-        self.register_plot(win='Loss', legend=['batch', 'full train'])
-        self.register_plot(win='Accuracy', legend=['full train', 'full test'])
-
     def register_plot(self, win: str, legend: Iterable[str]):
         legend = list(legend)
         self.legends[win] = legend
@@ -46,8 +42,9 @@ class VisdomMighty(visdom.Visdom):
         # hack to make window names consistent if the user forgets to specify
         # the title
         win = opts.get('title', str(opts))
-        self.line(Y=y, X=x, win=win, opts=opts,
-                  update='append' if self.win_exists(win) else None, name=name)
+        opts['markers'] = True
+        opts['markersize'] = 7
+        self.line(Y=y, X=x, win=win, opts=opts, update='append', name=name)
         if name is not None:
             self.update_window_opts(
                 win=win, opts=dict(legend=self.legends[win], title=win))
