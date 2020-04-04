@@ -43,4 +43,4 @@ class DataLoader:
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.dataset_cls.__name__}, " \
-               f"normalize={self.normalize})"
+               f"normalize={self.normalize}, batch_size={self.batch_size})"

@@ -7,7 +7,7 @@ from torch.optim.optimizer import Optimizer
 
 from mighty.monitor import MonitorEmbedding
 from mighty.monitor.accuracy import Accuracy, AccuracyEmbedding
-from mighty.monitor.var_online import MeanOnline, VarianceOnline
+from mighty.monitor.var_online import MeanOnline, VarianceOnline, VarianceOnlineLabels
 from mighty.utils.algebra import compute_sparsity
 from mighty.utils.data import DataLoader, get_normalize_inverse
 from .gradient import TrainerGrad
@@ -58,7 +58,7 @@ class TrainerEmbedding(TrainerGrad):
         online = super()._init_online_measures()
         online['sparsity'] = MeanOnline()  # scalar
         online['l1_norm'] = MeanOnline()  # (V,) vector
-        online['clusters'] = VarianceOnline()  # (C, V) tensor
+        online['clusters'] = VarianceOnlineLabels()  # (C, V) tensor
         return online
 
     def _on_forward_pass_batch(self, input, output, labels):
@@ -66,14 +66,7 @@ class TrainerEmbedding(TrainerGrad):
         sparsity = compute_sparsity(output)
         self.online['sparsity'].update(sparsity.cpu())
         self.online['l1_norm'].update(output.abs().mean(dim=0).cpu())
-
-        # update clusters
-        class_centroids = []
-        for label in sorted(labels.unique(sorted=True)):
-            outputs_label = output[labels == label]
-            class_centroids.append(outputs_label.mean(dim=0).cpu())
-        class_centroids = torch.stack(class_centroids, dim=0)  # (C, V)
-        self.online['clusters'].update(class_centroids)
+        self.online['clusters'].update(output, labels)
 
     def _epoch_finished(self, epoch, loss):
         self.monitor.update_sparsity(self.online['sparsity'].get_mean(),

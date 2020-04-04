@@ -130,7 +130,6 @@ class Monitor:
         self.log(repr(self.mutual_info))
         fwd_size = os.environ.get('FULL_FORWARD_PASS_SIZE', '(all samples)')
         self.log(f"FULL_FORWARD_PASS_SIZE: {fwd_size}")
-        self.log(f"BATCH_SIZE: {os.environ.get('BATCH_SIZE', '(default)')}")
         self.log(f"Batches in epoch: {self.timer.batches_in_epoch}")
         self.log(f"Start epoch: {self.timer.epoch}")
         commit = subprocess.run(['git', 'rev-parse', 'HEAD'],

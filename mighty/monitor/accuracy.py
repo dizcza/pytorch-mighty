@@ -4,7 +4,7 @@ from collections import defaultdict
 import torch
 import torch.utils.data
 
-from mighty.monitor.var_online import MeanOnlineBatch
+from mighty.monitor.var_online import MeanOnlineLabels
 from mighty.utils.algebra import compute_distance
 
 
@@ -70,12 +70,11 @@ class AccuracyEmbedding(Accuracy):
         self.metric = metric
         self.cache = cache
         self.input_cached = []
-        self.centroids_dict = defaultdict(MeanOnlineBatch)
+        self.centroids_dict = MeanOnlineLabels()
 
     @property
     def centroids(self):
-        centroids = tuple(c.get_mean() for c in self.centroids_dict.values())
-        centroids = torch.stack(centroids, dim=0)
+        centroids = self.centroids_dict.get_mean()
         return centroids
 
     @property
@@ -83,7 +82,7 @@ class AccuracyEmbedding(Accuracy):
         return len(self.centroids_dict) > 0
 
     def reset(self):
-        self.centroids_dict.clear()
+        self.centroids_dict.reset()
         self.input_cached.clear()
 
     def extra_repr(self):
@@ -110,10 +109,7 @@ class AccuracyEmbedding(Accuracy):
 
     def partial_fit(self, outputs_batch, labels_batch):
         outputs_batch = outputs_batch.detach().cpu()
-        for label in labels_batch.unique(sorted=True):
-            self.centroids_dict[label.item()].update(
-                outputs_batch[labels_batch == label]
-            )
+        self.centroids_dict.update(outputs_batch, labels_batch)
         if self.cache:
             self.input_cached.append(outputs_batch)
 
@@ -127,7 +123,7 @@ class AccuracyEmbedding(Accuracy):
 
     def predict(self, outputs_test):
         argmin = self.distances(outputs_test).argmin(dim=1).cpu()
-        labels_stored = tuple(self.centroids_dict.keys())
+        labels_stored = self.centroids_dict.labels()
         labels_stored = torch.IntTensor(labels_stored)
         labels_predicted = labels_stored[argmin]
         return labels_predicted
