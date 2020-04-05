@@ -71,7 +71,6 @@ class MutualInfo(ABC):
         if not isinstance(layer, self.ignore_layers):
             self.layer_to_name[layer] = name
 
-    @ScheduleExp()
     def force_update(self, model: nn.Module):
         if self.eval_loader is None:
             return

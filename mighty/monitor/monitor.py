@@ -7,11 +7,10 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.utils.data
-from sklearn.metrics import confusion_matrix, pairwise
+from sklearn.metrics import confusion_matrix
 
-from mighty.monitor.accuracy import calc_accuracy, Accuracy, \
-    AccuracyArgmax
-from mighty.monitor.batch_timer import timer, ScheduleStep
+from mighty.monitor.accuracy import calc_accuracy, Accuracy
+from mighty.monitor.batch_timer import timer, ScheduleStep, ScheduleExp
 from mighty.monitor.mutual_info.stub import MutualInfoStub
 from mighty.monitor.var_online import VarianceOnline
 from mighty.monitor.viz import VisdomMighty
@@ -144,8 +143,14 @@ class Monitor:
         self.param_records.batch_finished()
         self.timer.tick()
         if self.timer.epoch == 0:
-            self.mutual_info.force_update(model)
-            self.update_mutual_info()
+            self.batch_finished_first_epoch(model)
+
+    @ScheduleExp()
+    def batch_finished_first_epoch(self, model):
+        # inspect the very beginning of the training progress
+        self.mutual_info.force_update(model)
+        self.update_mutual_info()
+        self.update_gradient_signal_to_noise_ratio()
 
     def update_loss(self, loss: Optional[torch.Tensor], mode='batch'):
         if loss is None:
@@ -188,22 +193,29 @@ class Monitor:
                 ))
 
     def update_weight_trace_signal_to_noise_ratio(self):
+        # if weight mean / std is large, the network is confident
+        # in which direction "to move"
+        # if weight mean / std is small, the network makes random walk
         for name, param_record in self.param_records.items():
-            name = f"Weight SNR {name}"
-            param_norm = param_record.param.data.norm(p=2).cpu()
             mean, std = param_record.variance.get_mean_std()
             param_record.variance.reset()
-            snr = mean / (std + 1e-6)
-            snr /= param_norm
+            snr = mean / std
+            if not torch.isfinite(snr).all():
+                continue
             snr.pow_(2)
-            self.viz.histogram(X=snr.view(-1), win=name, opts=dict(
-                xlabel='(mean/std)^2',
-                ylabel='# bins (distribution)',
+            snr.log10_().mul_(10)
+            name = f"Weight SNR {name}"
+            self.viz.histogram(X=snr.flatten(), win=name, opts=dict(
+                xlabel='10 log10[(mean/std)^2], db',
+                ylabel='# params (distribution)',
                 title=name,
-                xtype='log',
             ))
 
     def update_gradient_signal_to_noise_ratio(self):
+        if self._advanced_monitoring_level.value < \
+                MonitorLevel.SIGNAL_TO_NOISE.value:
+            # SNR is not monitored
+            return
         snr = []
         legend = []
         for name, param_record in self.param_records.items():
@@ -221,6 +233,9 @@ class Monitor:
             snr.append(mean / std)
             legend.append(name)
             if self._advanced_monitoring_level is MonitorLevel.FULL:
+                if (std == 0).all():
+                    # skip the first update
+                    continue
                 self.viz.line_update(y=[mean, std], opts=dict(
                     xlabel='Epoch',
                     ylabel='Normalized Mean and STD',
@@ -229,14 +244,15 @@ class Monitor:
                     xtype='log',
                     ytype='log',
                 ))
-        self.viz.line_update(y=snr, opts=dict(
-            xlabel='Epoch',
-            ylabel='||Mean(∇Wi)|| / ||STD(∇Wi)||',
-            title='Grad Signal to Noise Ratio',
-            legend=legend,
-            xtype='log',
-            ytype='log',
-        ))
+        if np.isfinite(snr).all():
+            self.viz.line_update(y=snr, opts=dict(
+                xlabel='Epoch',
+                ylabel='||Mean(∇Wi)|| / ||STD(∇Wi)||',
+                title='Gradient Signal to Noise Ratio',
+                legend=legend,
+                xtype='log',
+                ytype='log',
+            ))
 
     def update_accuracy_epoch(self, labels_pred, labels_true, mode):
         self.update_accuracy(
@@ -328,9 +344,7 @@ class Monitor:
         for monitored_function in self.functions:
             monitored_function(self.viz)
         self.update_grad_norm()
-        if self._advanced_monitoring_level.value >= \
-                MonitorLevel.SIGNAL_TO_NOISE.value:
-            self.update_gradient_signal_to_noise_ratio()
+        self.update_gradient_signal_to_noise_ratio()
         if self._advanced_monitoring_level is MonitorLevel.FULL:
             self.param_records.plot_sign_flips(self.viz)
             self.update_initial_difference()
