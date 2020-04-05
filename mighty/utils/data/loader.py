@@ -20,7 +20,7 @@ class DataLoader:
 
     @property
     def num_workers(self):
-        return int(os.environ.get('LOADER_WORKERS', 4))
+        return int(os.environ.get('LOADER_WORKERS', 0))
 
     def get(self, train=True) -> torch.utils.data.DataLoader:
         dataset = self.dataset_cls(DATA_DIR, train=train, download=True,
