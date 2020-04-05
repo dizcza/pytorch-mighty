@@ -391,11 +391,11 @@ class Monitor:
                 legend=legend,
             ))
 
-    def plot_psnr(self, psnr):
+    def plot_psnr(self, psnr, win=''):
         self.viz.line_update(y=psnr, opts=dict(
             xlabel='Epoch',
             ylabel='PSNR',
-            title='Peak signal-to-noise ratio',
+            title=f'Peak signal-to-noise ratio {win}',
         ))
 
 
@@ -406,7 +406,7 @@ class MonitorEmbedding(Monitor):
         self.viz.line_update(y=sparsity, opts=dict(
             xlabel='Epoch',
             ylabel='L1 norm / size',
-            title='Output sparsity',
+            title='Output L1 sparsity',
         ), name=mode)
 
     def clusters_heatmap(self, mean, std):

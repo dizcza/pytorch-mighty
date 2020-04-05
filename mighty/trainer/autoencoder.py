@@ -6,6 +6,7 @@ import torch.utils.data
 from torch.optim.lr_scheduler import _LRScheduler, ReduceLROnPlateau
 from torch.optim.optimizer import Optimizer
 
+from mighty.loss import LossPenalty
 from mighty.monitor import MonitorAutoenc
 from mighty.monitor.accuracy import Accuracy, AccuracyAutoencoder
 from mighty.monitor.var_online import MeanOnline
@@ -47,7 +48,11 @@ class TrainerAutoencoder(TrainerEmbedding):
 
     def _get_loss(self, input, output, labels):
         latent, reconstructed = output
-        return self.criterion(reconstructed, input)
+        if isinstance(self.criterion, LossPenalty):
+            loss = self.criterion(reconstructed, input, latent)
+        else:
+            loss = self.criterion(reconstructed, input)
+        return loss
 
     def _on_forward_pass_batch(self, input, output, labels):
         latent, reconstructed = output
