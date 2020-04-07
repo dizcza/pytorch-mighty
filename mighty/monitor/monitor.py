@@ -371,7 +371,7 @@ class Monitor:
         self.viz.line_update(y=dp_normed, opts=dict(
             xlabel='Epoch',
             ylabel='||W - W_initial|| / ||W_initial||',
-            title='How far the current weights are from the initial?',
+            title='How far are the current weights from the initial?',
             legend=legend,
         ))
 
@@ -409,7 +409,7 @@ class MonitorEmbedding(Monitor):
             title='Output L1 sparsity',
         ), name=mode)
 
-    def clusters_heatmap(self, mean, std):
+    def clusters_heatmap(self, mean, std, save=False):
         """
         Cluster centers distribution heatmap.
 
@@ -445,7 +445,10 @@ class MonitorEmbedding(Monitor):
         if n_classes <= self.n_classes_format_ytickstep_1:
             opts.update(ytickstep=1)
         self.viz.heatmap(mean, win=win, opts=opts)
-        self.save_heatmap(mean, win=win, opts=opts)
+        if save:
+            self.viz.heatmap(mean,
+                             win=f"{win}. Epoch {self.timer.epoch}",
+                             opts=opts)
         normalizer = mean.norm(p=1, dim=1).mean()
         outer_distance = compute_manhattan_dist(mean) / normalizer
         std = std.norm(p=1, dim=1).mean() / normalizer
@@ -455,11 +458,6 @@ class MonitorEmbedding(Monitor):
             legend=['inter-distance', 'intra-STD'],
             title='How much do patterns differ in L1 measure?',
         ))
-
-    @ScheduleStep(epoch_step=20)
-    def save_heatmap(self, heatmap, win, opts):
-        self.viz.heatmap(heatmap, win=f"{win}. Epoch {self.timer.epoch}",
-                         opts=opts)
 
     def update_l1_norm(self, l1_norm: torch.Tensor):
         # Neuron L1 norm, normalized by the batch size

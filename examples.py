@@ -81,7 +81,7 @@ def train_grad(n_epoch=10, dataset_cls=MNIST):
                           scheduler=scheduler)
     # trainer.restore()  # uncomment to restore the saved state
     trainer.monitor.advanced_monitoring(level=MonitorLevel.FULL)
-    trainer.train(n_epoch=n_epoch, mutual_info_layers=0, cache=True)
+    trainer.train(n_epochs=n_epoch, mutual_info_layers=0, cache=True)
 
 
 def test(model, n_epoch=500, dataset_cls=MNIST):
@@ -92,7 +92,7 @@ def test(model, n_epoch=500, dataset_cls=MNIST):
     normalize = transforms.Normalize(mean=(0.1307,), std=(0.3081,))
     data_loader = DataLoader(dataset_cls, normalize=normalize)
     trainer = Test(model=model, criterion=criterion, data_loader=data_loader)
-    trainer.train(n_epoch=n_epoch, adversarial=True, mask_explain=True)
+    trainer.train(n_epochs=n_epoch, adversarial=True, mask_explain=True)
 
 
 if __name__ == '__main__':

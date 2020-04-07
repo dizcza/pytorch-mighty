@@ -21,6 +21,7 @@ class VisdomMighty(visdom.Visdom):
               f"Choose environment '{self.env}'.")
         self.timer = timer
         self.legends = defaultdict(list)
+        self.with_markers = False
 
     def register_plot(self, win: str, legend: Iterable[str]):
         legend = list(legend)
@@ -42,8 +43,9 @@ class VisdomMighty(visdom.Visdom):
         # hack to make window names consistent if the user forgets to specify
         # the title
         win = opts.get('title', str(opts))
-        opts['markers'] = True
-        opts['markersize'] = 7
+        if self.with_markers:
+            opts['markers'] = True
+            opts['markersize'] = 7
         self.line(Y=y, X=x, win=win, opts=opts, update='append', name=name)
         if name is not None:
             self.update_window_opts(

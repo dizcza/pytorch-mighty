@@ -316,10 +316,10 @@ class Trainer(ABC):
         self.monitor.update_loss(loss=loss_online.get_mean(),
                                  mode='batch')
 
-    def train(self, n_epoch=10, epoch_update_step=1, mutual_info_layers=1,
+    def train(self, n_epochs=10, epoch_update_step=1, mutual_info_layers=1,
               adversarial=False, mask_explain=False):
         """
-        :param n_epoch: number of training epochs
+        :param n_epochs: number of training epochs
         :param epoch_update_step: epoch step to run full evaluation
         :param mutual_info_layers: number of last layers to be monitored for mutual information;
                                    pass '0' to turn off this feature.
@@ -331,6 +331,8 @@ class Trainer(ABC):
             # new environment
             self.monitor.open(env_name=self.env_name)
             self.monitor.clear()
+        if n_epochs == 1:
+            self.monitor.viz.with_markers = True
         self.monitor_functions()
         self.monitor.log_model(self.model)
         self.monitor.log_self()
@@ -349,7 +351,7 @@ class Trainer(ABC):
 
         print(f"Training '{self.model.__class__.__name__}'")
 
-        for epoch in range(self.timer.epoch, self.timer.epoch + n_epoch):
+        for epoch in range(self.timer.epoch, self.timer.epoch + n_epochs):
             self.train_epoch(epoch=epoch)
             if epoch % epoch_update_step == 0:
                 loss = self.full_forward_pass()
