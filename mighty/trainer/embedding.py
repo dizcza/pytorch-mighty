@@ -61,12 +61,13 @@ class TrainerEmbedding(TrainerGrad):
         online['clusters'] = VarianceOnlineLabels()  # (C, V) tensor
         return online
 
-    def _on_forward_pass_batch(self, input, output, labels):
-        super()._on_forward_pass_batch(input, output, labels)
+    def _on_forward_pass_batch(self, batch, output):
+        input, labels = batch
         sparsity = compute_sparsity(output)
         self.online['sparsity'].update(sparsity.cpu())
         self.online['l1_norm'].update(output.abs().mean(dim=0).cpu())
         self.online['clusters'].update(output, labels)
+        super()._on_forward_pass_batch(batch, output)
 
     def _epoch_finished(self, epoch, loss):
         self.monitor.update_sparsity(self.online['sparsity'].get_mean(),

@@ -84,16 +84,6 @@ class MutualInfo(ABC):
                 model(images)
         self.finish_listening()
 
-    def decorate_evaluation(self, get_outputs_old: Callable):
-        @wraps(get_outputs_old)
-        def get_outputs_wrapped(*args, **kwargs):
-            self.start_listening()
-            outputs = get_outputs_old(*args, **kwargs)
-            self.finish_listening()
-            return outputs
-
-        return get_outputs_wrapped
-
     def eval_batches(self):
         n_samples = 0
         for images, labels in iter(self.eval_loader):

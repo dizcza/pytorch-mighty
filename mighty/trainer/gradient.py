@@ -1,9 +1,12 @@
 from typing import Union
 
+import torch
 import torch.nn as nn
 from torch.optim.lr_scheduler import _LRScheduler, ReduceLROnPlateau
 from torch.optim.optimizer import Optimizer
 
+from mighty.monitor.accuracy import AccuracyArgmax
+from mighty.utils.common import batch_to_cuda
 from mighty.utils.data import DataLoader
 from .trainer import Trainer
 
@@ -30,6 +33,10 @@ class TrainerGrad(Trainer):
         super().__init__(model, criterion=criterion, data_loader=data_loader, **kwargs)
         self.optimizer = optimizer
         self.scheduler = scheduler
+        self._labels = {
+            "predicted": [],
+            "true": []
+        }
 
     def monitor_functions(self):
         super().monitor_functions()
@@ -52,15 +59,52 @@ class TrainerGrad(Trainer):
             optimizer_str += f"\n\tgroup {group_id}: lr={group['lr']}, weight_decay={group['weight_decay']}"
         self.monitor.log(optimizer_str)
 
-    def train_batch(self, images, labels):
+    def train_batch(self, batch):
         self.optimizer.zero_grad()
-        outputs = self.model(images)
-        loss = self._get_loss(images, outputs, labels)
+        outputs = self._forward(batch)
+        loss = self._get_loss(batch, outputs)
         loss.backward()
         self.optimizer.step(closure=None)
-        return outputs, loss
+        return loss
+
+    def _on_forward_pass_batch(self, batch, output):
+        input, labels = batch
+        self._labels['true'].append(labels)
+        if isinstance(self.accuracy_measure, AccuracyArgmax):
+            # softmax
+            predicted = self.accuracy_measure.predict(output)
+            self._labels['predicted'].append(predicted)
+        self.accuracy_measure.partial_fit(output, labels)
+
+    def _get_loss(self, batch, output):
+        input, labels = batch
+        return self.criterion(output, labels)
+
+    def update_accuracy(self):
+        labels_full = torch.cat(self._labels['true'], dim=0)
+
+        if len(self._labels['predicted']) > 0:
+            # softmax
+            labels_pred = torch.cat(self._labels['predicted'], dim=0)
+        elif getattr(self.accuracy_measure, 'cache', False):
+            labels_pred = self.accuracy_measure.predict_cached()
+        else:
+            labels_pred = []
+            with torch.no_grad():
+                for batch in self.eval_batches():
+                    batch = batch_to_cuda(batch)
+                    output = self._forward(batch)
+                    labels_pred.append(self.accuracy_measure.predict(output))
+            labels_pred = torch.cat(labels_pred, dim=0)
+
+        self.monitor.update_accuracy_epoch(labels_pred, labels_full,
+                                           mode='train')
+        self._labels['true'].clear()
+        self._labels['predicted'].clear()
+
 
     def _epoch_finished(self, epoch, loss):
+        self.update_accuracy()
         if isinstance(self.scheduler, ReduceLROnPlateau):
             self.scheduler.step(metrics=loss, epoch=epoch)
         elif isinstance(self.scheduler, _LRScheduler):

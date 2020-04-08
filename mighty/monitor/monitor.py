@@ -486,7 +486,7 @@ class MonitorAutoenc(MonitorEmbedding):
         images_stacked = torch.cat([images, reconstructed], dim=0)
         images_stacked.clamp_(0, 1)
         self.viz.images(images_stacked, nrow=n_show, win='autoencoder',
-            opts=dict(title="Original | Reconstructed"))
+            opts=dict(title="Original (Top) | Reconstructed"))
 
     def plot_reconstruction_error(self, pixel_missed, thresholds):
         title = "Reconstruction error"

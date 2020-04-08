@@ -9,6 +9,17 @@ import torch.nn as nn
 import torch.utils.data
 
 
+def batch_to_cuda(batch):
+    if not torch.cuda.is_available():
+        return batch
+    if isinstance(batch, torch.Tensor):
+        batch = batch.cuda()
+    else:
+        # iterable
+        batch = tuple(tensor.cuda() for tensor in batch)
+    return batch
+
+
 def find_layers(model: nn.Module, layer_class):
     for name, layer in find_named_layers(model, layer_class=layer_class):
         yield layer

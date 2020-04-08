@@ -136,10 +136,6 @@ class AccuracyEmbedding(Accuracy):
 
 class AccuracyAutoencoder(AccuracyEmbedding):
 
-    def partial_fit(self, outputs_batch, labels_batch):
-        latent, reconstructed = outputs_batch
-        super().partial_fit(latent, labels_batch)
-
     def predict_cached(self):
         if not self.cache:
             raise ValueError("Caching is turned off")
@@ -149,5 +145,7 @@ class AccuracyAutoencoder(AccuracyEmbedding):
         return super().predict(input)
 
     def predict(self, outputs_test):
+        # partial_fit() is called from TrainerGrad which already has
+        # latent tensor as the output
         latent, reconstructed = outputs_test
         return super().predict(latent)

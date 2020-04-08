@@ -46,7 +46,8 @@ class TrainerAutoencoder(TrainerEmbedding):
         online['psnr'] = MeanOnline()  # peak signal-to-noise ratio
         return online
 
-    def _get_loss(self, input, output, labels):
+    def _get_loss(self, batch, output):
+        input, labels = batch
         latent, reconstructed = output
         if isinstance(self.criterion, LossPenalty):
             loss = self.criterion(reconstructed, input, latent)
@@ -54,13 +55,14 @@ class TrainerAutoencoder(TrainerEmbedding):
             loss = self.criterion(reconstructed, input)
         return loss
 
-    def _on_forward_pass_batch(self, input, output, labels):
+    def _on_forward_pass_batch(self, batch, output):
+        input, labels = batch
         latent, reconstructed = output
         if isinstance(self.criterion, nn.BCEWithLogitsLoss):
             reconstructed = reconstructed.sigmoid()
         psnr = compute_psnr(input, reconstructed)
         self.online['psnr'].update(psnr.cpu())
-        super()._on_forward_pass_batch(input, latent, labels)
+        super()._on_forward_pass_batch(batch, latent)
 
     def _epoch_finished(self, epoch, loss):
         self.plot_autoencoder()

@@ -1,3 +1,4 @@
+import math
 import time
 import warnings
 from abc import ABC, abstractmethod
@@ -7,7 +8,6 @@ from typing import Dict
 import torch
 import torch.nn as nn
 import torch.utils.data
-import math
 from tqdm import tqdm
 
 from mighty.loss import PairLoss
@@ -18,7 +18,8 @@ from mighty.monitor.monitor import Monitor
 from mighty.monitor.mutual_info import MutualInfoKMeans, MutualInfoStub
 from mighty.monitor.var_online import MeanOnline
 from mighty.trainer.mask import MaskTrainer
-from mighty.utils.common import find_named_layers, how_many_samples_take
+from mighty.utils.common import find_named_layers, how_many_samples_take, \
+    batch_to_cuda
 from mighty.utils.constants import CHECKPOINTS_DIR
 from mighty.utils.data import DataLoader, get_normalize_inverse
 from mighty.utils.domain import AdversarialExamples
@@ -99,7 +100,7 @@ class Trainer(ABC):
         return dict()
 
     @abstractmethod
-    def train_batch(self, images, labels):
+    def train_batch(self, batch):
         raise NotImplementedError()
 
     def save(self):
@@ -149,7 +150,7 @@ class Trainer(ABC):
         n_samples_take = how_many_samples_take(train=True)
         n_samples_take = min(n_samples_take, len(self.train_loader.dataset))
         n_batches = math.ceil(n_samples_take / self.data_loader.batch_size)
-        for batch_id, (images, labels) in tqdm(
+        for batch_id, batch in tqdm(
                 enumerate(iter(loader)),
                 desc="Full forward pass (eval)",
                 total=n_batches,
@@ -157,93 +158,58 @@ class Trainer(ABC):
                 leave=False):
             if batch_id >= n_batches:
                 break
-            yield images, labels
+            yield batch
 
-    def _get_loss(self, input, output, labels):
-        return self.criterion(output, labels)
+    def _get_loss(self, batch, output):
+        raise NotImplementedError()
 
-    def _on_forward_pass_batch(self, input, output, labels):
+    def _on_forward_pass_batch(self, batch, output):
         pass
 
-    def full_forward_pass(self):
+    def _forward(self, batch):
+        if isinstance(batch, torch.Tensor):
+            # unsupervised learning
+            input = batch
+        else:
+            # supervised learning
+            input, labels = batch
+        return self.model(input)
+
+    def full_forward_pass(self, train=True):
         mode_saved = self.model.training
         self.model.train(False)
-        use_cuda = torch.cuda.is_available()
         loss_online = MeanOnline()
-        self.accuracy_measure.reset()
+        # TODO reset accuracy
 
-        labels_full = []
-        labels_pred = []
-        with torch.no_grad():
-            for inputs, labels in self.eval_batches(verbose=True):
-                if use_cuda:
-                    inputs = inputs.cuda()
-                outputs = self.model(inputs)
-                labels_full.append(labels)
-                if isinstance(self.accuracy_measure, AccuracyArgmax):
-                    # softmax
-                    labels_pred.append(self.accuracy_measure.predict(outputs))
-                loss = self._get_loss(inputs, outputs, labels)
-                self._on_forward_pass_batch(inputs, outputs, labels)
-                self.accuracy_measure.partial_fit(outputs, labels)
-                loss_online.update(loss)
-        labels_full = torch.cat(labels_full, dim=0)
-
-        if len(labels_pred) > 0:
-            # softmax
-            labels_pred = torch.cat(labels_pred, dim=0)
-        elif getattr(self.accuracy_measure, 'cache', False):
-            labels_pred = self.accuracy_measure.predict_cached()
+        if train:
+            loader = self.eval_batches(verbose=True)
+            self.mutual_info.start_listening()
         else:
-            labels_pred = []
-            with torch.no_grad():
-                for inputs, labels in self.eval_batches():
-                    if use_cuda:
-                        inputs = inputs.cuda()
-                    outputs = self.model(inputs)
-                    labels_pred.append(self.accuracy_measure.predict(outputs))
-            labels_pred = torch.cat(labels_pred, dim=0)
+            loader = self.data_loader.get(train)
+
+        with torch.no_grad():
+            for batch in loader:
+                batch = batch_to_cuda(batch)
+                output = self._forward(batch)
+                loss = self._get_loss(batch, output)
+                if train:
+                    # evaluation
+                    self._on_forward_pass_batch(batch, output)
+                loss_online.update(loss)
 
         loss = loss_online.get_mean()
-
-        self.monitor.update_accuracy_epoch(labels_pred, labels_full,
-                                           mode='full train')
-        self.monitor.update_loss(loss, mode='full train')
+        self.monitor.update_loss(loss, mode='train' if train else 'test')
 
         self.model.train(mode_saved)
+        self.mutual_info.finish_listening()
 
         return loss
-
-    def full_forward_pass_test(self):
-        mode_saved = self.model.training
-        self.model.train(False)
-        use_cuda = torch.cuda.is_available()
-        if use_cuda:
-            self.model.cuda()
-        test_loader = self.data_loader.get(train=False)
-
-        labels_full = []
-        labels_pred = []
-        with torch.no_grad():
-            for inputs, labels in iter(test_loader):
-                if use_cuda:
-                    inputs = inputs.cuda()
-                outputs = self.model(inputs)
-                labels_pred.append(self.accuracy_measure.predict(outputs))
-                labels_full.append(labels)
-        labels_pred = torch.cat(labels_pred, dim=0)
-        labels_full = torch.cat(labels_full, dim=0)
-
-        self.monitor.update_accuracy_epoch(labels_pred, labels_full,
-                                           mode='full test')
-        self.model.train(mode_saved)
-        accuracy = calc_accuracy(labels_full, labels_pred)
-        return accuracy
 
     def _epoch_finished(self, epoch, loss):
         self.save()
         for online_measure in self.online.values():
             online_measure.reset()
+        self.accuracy_measure.reset()
 
     def train_mask(self):
         """
@@ -282,7 +248,7 @@ class Trainer(ABC):
         for i in range(n_iter):
             images.grad = None  # reset gradients tensor
             outputs = self.model(images)
-            loss = self._get_loss(images, outputs, labels)
+            loss = self._get_loss((images, labels), outputs)
             loss.backward()
             with torch.no_grad():
                 adv_noise = noise_ampl * images.grad
@@ -298,15 +264,11 @@ class Trainer(ABC):
         :return: last batch loss
         """
         loss_online = MeanOnline()
-        use_cuda = torch.cuda.is_available()
-        for images, labels in tqdm(self.train_loader,
+        for batch in tqdm(self.train_loader,
                                    desc="Epoch {:d}".format(epoch),
                                    leave=False):
-            if use_cuda:
-                images = images.cuda()
-                labels = labels.cuda()
-
-            outputs, loss = self.train_batch(images, labels)
+            batch = batch_to_cuda(batch)
+            loss = self.train_batch(batch)
             loss_online.update(loss.detach().cpu())
             for name, param in self.model.named_parameters():
                 if torch.isnan(param).any():
@@ -343,8 +305,6 @@ class Trainer(ABC):
 
         if mutual_info_layers > 0 and not isinstance(self.mutual_info,
                                                      MutualInfoStub):
-            self.full_forward_pass = self.mutual_info.decorate_evaluation(
-                self.full_forward_pass)
             self.mutual_info.prepare(loader=self.data_loader.eval,
                                      model=self.model,
                                      monitor_layers_count=mutual_info_layers)
@@ -354,8 +314,8 @@ class Trainer(ABC):
         for epoch in range(self.timer.epoch, self.timer.epoch + n_epochs):
             self.train_epoch(epoch=epoch)
             if epoch % epoch_update_step == 0:
-                loss = self.full_forward_pass()
-                self.full_forward_pass_test()
+                loss = self.full_forward_pass(train=True)
+                self.full_forward_pass(train=False)
                 self.monitor.epoch_finished()
                 if adversarial:
                     self.monitor.plot_adversarial_examples(
@@ -364,22 +324,3 @@ class Trainer(ABC):
                 if mask_explain:
                     self.train_mask()
                 self._epoch_finished(epoch, loss)
-
-    def run_idle(self, n_epoch=10):
-        """
-        Burn-out mode without returning the output.
-        Useful in combination with `DumpActivationsHook`.
-
-        :param n_epoch: number of epochs to run in idle
-        """
-        self.model.eval()
-        for epoch in range(self.timer.epoch, self.timer.epoch + n_epoch):
-            use_cuda = torch.cuda.is_available()
-            for images, labels in tqdm(self.train_loader,
-                                       desc="Epoch {:d}".format(epoch),
-                                       leave=False):
-                if use_cuda:
-                    images = images.cuda()
-                self.model(images)
-                self.timer.tick()
-        self.model.train()
