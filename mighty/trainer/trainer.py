@@ -88,11 +88,10 @@ class Trainer(ABC):
         self.monitor.log(repr(self.data_loader))
 
     def _init_monitor(self, mutual_info) -> Monitor:
-        normalize_inverse = get_normalize_inverse(self.data_loader.normalize)
         monitor = Monitor(
             accuracy_measure=self.accuracy_measure,
             mutual_info=mutual_info,
-            normalize_inverse=normalize_inverse
+            normalize_inverse=self.data_loader.normalize_inverse
         )
         return monitor
 

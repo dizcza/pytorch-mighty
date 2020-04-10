@@ -33,11 +33,10 @@ class TrainerAutoencoder(TrainerEmbedding):
                          accuracy_measure=accuracy_measure, **kwargs)
 
     def _init_monitor(self, mutual_info) -> MonitorAutoenc:
-        normalize_inverse = get_normalize_inverse(self.data_loader.normalize)
         monitor = MonitorAutoenc(
             accuracy_measure=self.accuracy_measure,
             mutual_info=mutual_info,
-            normalize_inverse=normalize_inverse
+            normalize_inverse=self.data_loader.normalize_inverse
         )
         return monitor
 

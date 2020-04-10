@@ -6,6 +6,7 @@ import torchvision
 from tqdm import tqdm
 
 from mighty.utils.constants import DATA_DIR, BATCH_SIZE
+from mighty.utils.data import get_normalize_inverse
 
 
 class DataLoader:
@@ -18,6 +19,7 @@ class DataLoader:
             eval_size = float('inf')
         self.eval_size = eval_size
         self.num_workers = num_workers
+        self.normalize_inverse = get_normalize_inverse(self.normalize)
 
         transform = [torchvision.transforms.ToTensor()]
         if self.normalize is not None:
