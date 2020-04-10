@@ -1,7 +1,3 @@
-import os
-
-os.environ['FULL_FORWARD_PASS_SIZE'] = '10000'
-
 import torch
 import torch.nn as nn
 import torchvision.models

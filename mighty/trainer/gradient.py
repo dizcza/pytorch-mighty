@@ -91,7 +91,7 @@ class TrainerGrad(Trainer):
         else:
             labels_pred = []
             with torch.no_grad():
-                for batch in self.eval_batches():
+                for batch in self.data_loader.eval():
                     batch = batch_to_cuda(batch)
                     output = self._forward(batch)
                     labels_pred.append(self.accuracy_measure.predict(output))

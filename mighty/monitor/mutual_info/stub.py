@@ -10,6 +10,12 @@ class MutualInfoStub:
     def register(self, layer: nn.Module, name: str):
         pass
 
+    def start_listening(self):
+        pass
+
+    def finish_listening(self):
+        pass
+
     def force_update(self, model: nn.Module):
         pass
 

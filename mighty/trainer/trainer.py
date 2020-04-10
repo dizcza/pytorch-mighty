@@ -1,4 +1,3 @@
-import math
 import time
 import warnings
 from abc import ABC, abstractmethod
@@ -12,14 +11,13 @@ from tqdm import tqdm
 
 from mighty.loss import PairLoss
 from mighty.monitor.accuracy import AccuracyEmbedding, \
-    AccuracyArgmax, Accuracy, calc_accuracy
+    AccuracyArgmax, Accuracy
 from mighty.monitor.batch_timer import timer
 from mighty.monitor.monitor import Monitor
-from mighty.monitor.mutual_info import MutualInfoKMeans, MutualInfoStub
+from mighty.monitor.mutual_info import MutualInfoStub
 from mighty.monitor.var_online import MeanOnline
 from mighty.trainer.mask import MaskTrainer
-from mighty.utils.common import find_named_layers, how_many_samples_take, \
-    batch_to_cuda
+from mighty.utils.common import find_named_layers, batch_to_cuda
 from mighty.utils.constants import CHECKPOINTS_DIR
 from mighty.utils.data import DataLoader, get_normalize_inverse
 from mighty.utils.domain import AdversarialExamples
@@ -34,7 +32,7 @@ class Trainer(ABC):
                  criterion: nn.Module,
                  data_loader: DataLoader,
                  accuracy_measure: Accuracy = None,
-                 mutual_info=MutualInfoKMeans(),
+                 mutual_info=None,
                  env_suffix='',
                  checkpoint_dir=CHECKPOINTS_DIR):
         """
@@ -54,6 +52,8 @@ class Trainer(ABC):
         self.criterion = criterion
         self.data_loader = data_loader
         self.train_loader = data_loader.get(train=True)
+        if mutual_info is None:
+            mutual_info = MutualInfoStub()
         self.mutual_info = mutual_info
         self.checkpoint_dir = Path(checkpoint_dir)
         self.timer = timer
@@ -145,21 +145,6 @@ class Trainer(ABC):
         print(f"Restored model state from {checkpoint_path}.")
         return checkpoint_state
 
-    def eval_batches(self, verbose=False):
-        loader = self.data_loader.eval
-        n_samples_take = how_many_samples_take(train=True)
-        n_samples_take = min(n_samples_take, len(self.train_loader.dataset))
-        n_batches = math.ceil(n_samples_take / self.data_loader.batch_size)
-        for batch_id, batch in tqdm(
-                enumerate(iter(loader)),
-                desc="Full forward pass (eval)",
-                total=n_batches,
-                disable=not verbose,
-                leave=False):
-            if batch_id >= n_batches:
-                break
-            yield batch
-
     def _get_loss(self, batch, output):
         raise NotImplementedError()
 
@@ -179,10 +164,9 @@ class Trainer(ABC):
         mode_saved = self.model.training
         self.model.train(False)
         loss_online = MeanOnline()
-        # TODO reset accuracy
 
         if train:
-            loader = self.eval_batches(verbose=True)
+            loader = self.data_loader.eval(verbose=True)
             self.mutual_info.start_listening()
         else:
             loader = self.data_loader.get(train)
@@ -200,8 +184,8 @@ class Trainer(ABC):
         loss = loss_online.get_mean()
         self.monitor.update_loss(loss, mode='train' if train else 'test')
 
-        self.model.train(mode_saved)
         self.mutual_info.finish_listening()
+        self.model.train(mode_saved)
 
         return loss
 
@@ -305,7 +289,7 @@ class Trainer(ABC):
 
         if mutual_info_layers > 0 and not isinstance(self.mutual_info,
                                                      MutualInfoStub):
-            self.mutual_info.prepare(loader=self.data_loader.eval,
+            self.mutual_info.prepare(loader=self.data_loader.eval(),
                                      model=self.model,
                                      monitor_layers_count=mutual_info_layers)
 

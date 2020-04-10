@@ -50,7 +50,7 @@ class MutualInfo(ABC):
         :param debug: plot bins distribution?
         """
         if estimate_size is None:
-            estimate_size = float(os.getenv('FULL_FORWARD_PASS_SIZE', 'inf'))
+            estimate_size = float('inf')
         self.estimate_size = estimate_size
         self.debug = debug
         self.activations = defaultdict(list)

@@ -127,10 +127,6 @@ class Monitor:
                  f"accuracy_measure={self.accuracy_measure}, "
                  f"level={self._advanced_monitoring_level})")
         self.log(repr(self.mutual_info))
-        fwd_size = os.environ.get('FULL_FORWARD_PASS_SIZE', '(all samples)')
-        self.log(f"FULL_FORWARD_PASS_SIZE: {fwd_size}")
-        self.log(f"Batches in epoch: {self.timer.batches_in_epoch}")
-        self.log(f"Start epoch: {self.timer.epoch}")
         commit = subprocess.run(['git', 'rev-parse', 'HEAD'],
                                 stdout=subprocess.PIPE,
                                 universal_newlines=True)
