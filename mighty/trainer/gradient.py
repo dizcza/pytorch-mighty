@@ -68,6 +68,9 @@ class TrainerGrad(Trainer):
         return loss
 
     def _on_forward_pass_batch(self, batch, output):
+        if isinstance(batch, torch.Tensor):
+            # unsupervised, no labels
+            return
         input, labels = batch
         self._labels['true'].append(labels)
         if isinstance(self.accuracy_measure, AccuracyArgmax):
@@ -81,6 +84,9 @@ class TrainerGrad(Trainer):
         return self.criterion(output, labels)
 
     def update_accuracy(self):
+        if len(self._labels['true']) == 0:
+            # unsupervised, no labels
+            return
         labels_full = torch.cat(self._labels['true'], dim=0)
 
         if len(self._labels['predicted']) > 0:
@@ -99,9 +105,6 @@ class TrainerGrad(Trainer):
 
         self.monitor.update_accuracy_epoch(labels_pred, labels_full,
                                            mode='train')
-        self._labels['true'].clear()
-        self._labels['predicted'].clear()
-
 
     def _epoch_finished(self, epoch, loss):
         self.update_accuracy()
@@ -109,6 +112,8 @@ class TrainerGrad(Trainer):
             self.scheduler.step(metrics=loss, epoch=epoch)
         elif isinstance(self.scheduler, _LRScheduler):
             self.scheduler.step(epoch=epoch)
+        self._labels['true'].clear()
+        self._labels['predicted'].clear()
         super()._epoch_finished(epoch, loss)
 
     def state_dict(self):

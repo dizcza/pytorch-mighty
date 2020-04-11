@@ -69,6 +69,16 @@ def compute_psnr(signal_orig, signal_estimated):
 
     dynamic_range = signal_orig.max(dim=1).values - \
                     signal_orig.min(dim=1).values
+
+    # filter out pairs with zero dynamic range
+    mask_valid = (dynamic_range != 0.)
+    if not mask_valid.any():
+        return torch.tensor(float('NaN'), device=signal_orig.device)
+
+    signal_orig = signal_orig[mask_valid]
+    signal_estimated = signal_estimated[mask_valid]
+    dynamic_range = dynamic_range[mask_valid]
+
     mse_val = F.mse_loss(signal_orig, signal_estimated,
                          reduction='none').mean(dim=1)
     psnr = 10 * torch.log10(dynamic_range ** 2 / mse_val).mean()

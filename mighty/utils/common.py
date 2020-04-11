@@ -19,6 +19,14 @@ def batch_to_cuda(batch):
     return batch
 
 
+def input_from_batch(batch):
+    if isinstance(batch, torch.Tensor):
+        # unsupervised learning, no labels
+        return batch
+    # iterable
+    return batch[0]
+
+
 def find_layers(model: nn.Module, layer_class):
     for name, layer in find_named_layers(model, layer_class=layer_class):
         yield layer

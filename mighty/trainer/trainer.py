@@ -17,9 +17,10 @@ from mighty.monitor.monitor import Monitor
 from mighty.monitor.mutual_info import MutualInfoStub
 from mighty.monitor.var_online import MeanOnline
 from mighty.trainer.mask import MaskTrainer
-from mighty.utils.common import find_named_layers, batch_to_cuda
+from mighty.utils.common import find_named_layers, batch_to_cuda, \
+    input_from_batch
 from mighty.utils.constants import CHECKPOINTS_DIR
-from mighty.utils.data import DataLoader, get_normalize_inverse
+from mighty.utils.data import DataLoader
 from mighty.utils.domain import AdversarialExamples
 from mighty.utils.prepare import prepare_eval
 
@@ -151,12 +152,7 @@ class Trainer(ABC):
         pass
 
     def _forward(self, batch):
-        if isinstance(batch, torch.Tensor):
-            # unsupervised learning
-            input = batch
-        else:
-            # supervised learning
-            input, labels = batch
+        input = input_from_batch(batch)
         return self.model(input)
 
     def full_forward_pass(self, train=True):

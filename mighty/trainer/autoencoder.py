@@ -11,7 +11,8 @@ from mighty.monitor import MonitorAutoenc
 from mighty.monitor.accuracy import Accuracy, AccuracyAutoencoder
 from mighty.monitor.var_online import MeanOnline
 from mighty.utils.algebra import compute_psnr
-from mighty.utils.data import DataLoader, get_normalize_inverse
+from mighty.utils.common import input_from_batch
+from mighty.utils.data import DataLoader
 from .embedding import TrainerEmbedding
 
 
@@ -46,7 +47,7 @@ class TrainerAutoencoder(TrainerEmbedding):
         return online
 
     def _get_loss(self, batch, output):
-        input, labels = batch
+        input = input_from_batch(batch)
         latent, reconstructed = output
         if isinstance(self.criterion, LossPenalty):
             loss = self.criterion(reconstructed, input, latent)
@@ -55,12 +56,13 @@ class TrainerAutoencoder(TrainerEmbedding):
         return loss
 
     def _on_forward_pass_batch(self, batch, output):
-        input, labels = batch
+        input = input_from_batch(batch)
         latent, reconstructed = output
         if isinstance(self.criterion, nn.BCEWithLogitsLoss):
             reconstructed = reconstructed.sigmoid()
         psnr = compute_psnr(input, reconstructed)
-        self.online['psnr'].update(psnr.cpu())
+        if torch.isfinite(psnr):
+            self.online['psnr'].update(psnr.cpu())
         super()._on_forward_pass_batch(batch, latent)
 
     def _epoch_finished(self, epoch, loss):
@@ -69,13 +71,14 @@ class TrainerAutoencoder(TrainerEmbedding):
         super()._epoch_finished(epoch, loss)
 
     def plot_autoencoder(self):
-        input, labels = self.data_loader.sample()
+        batch = self.data_loader.sample()
+        input = input_from_batch(batch)
         if torch.cuda.is_available():
             input = input.cuda()
         mode_saved = self.model.training
         self.model.train(False)
         with torch.no_grad():
-            latent, reconstructed = self.model(input)
+            latent, reconstructed = self._forward(batch)
         if isinstance(self.criterion, nn.BCEWithLogitsLoss):
             reconstructed = reconstructed.sigmoid()
         self.monitor.plot_autoencoder(input, reconstructed)

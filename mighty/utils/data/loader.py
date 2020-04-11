@@ -1,12 +1,11 @@
 import math
-
 import torch
 import torch.utils.data
 import torchvision
 from tqdm import tqdm
 
 from mighty.utils.constants import DATA_DIR, BATCH_SIZE
-from mighty.utils.data import get_normalize_inverse
+from mighty.utils.data.normalize import get_normalize_inverse
 
 
 class DataLoader:
