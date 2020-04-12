@@ -345,8 +345,10 @@ class Monitor:
         self.mutual_info.register(layer, name=prefix)
         for name, param in layer.named_parameters(prefix=prefix):
             if param.requires_grad and not name.endswith('.bias'):
-                self.param_records[name] = ParamRecord(param,
-                    monitor_level=self._advanced_monitoring_level)
+                self.param_records[name] = ParamRecord(
+                    param,
+                    monitor_level=self._advanced_monitoring_level
+                )
 
     def update_initial_difference(self):
         legend = []
@@ -477,8 +479,12 @@ class MonitorAutoenc(MonitorEmbedding):
             reconstructed = self.normalize_inverse(reconstructed)
         images_stacked = torch.cat([images, reconstructed], dim=0)
         images_stacked.clamp_(0, 1)
-        self.viz.images(images_stacked, nrow=n_show, win='autoencoder',
-            opts=dict(title="Original (Top) | Reconstructed"))
+        self.viz.images(images_stacked,
+                        nrow=n_show, win='autoencoder', opts=dict(
+                title="Original (Top) | Reconstructed",
+                width=1000,
+                height=None,
+            ))
 
     def plot_reconstruction_error(self, pixel_missed, thresholds):
         title = "Reconstruction error"
