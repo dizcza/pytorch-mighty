@@ -1,7 +1,8 @@
 import math
+
 import torch
 import torch.utils.data
-import torchvision
+from torchvision.transforms import ToTensor
 from tqdm import tqdm
 
 from mighty.utils.constants import DATA_DIR, BATCH_SIZE
@@ -9,21 +10,18 @@ from mighty.utils.data.normalize import get_normalize_inverse
 
 
 class DataLoader:
-    def __init__(self, dataset_cls, normalize=None, batch_size=BATCH_SIZE,
+    def __init__(self, dataset_cls,
+                 transform=ToTensor(),
+                 batch_size=BATCH_SIZE,
                  eval_size=None, num_workers=0):
         self.dataset_cls = dataset_cls
-        self.normalize = normalize
+        self.transform = transform
         self.batch_size = batch_size
         if eval_size is None:
             eval_size = float('inf')
         self.eval_size = eval_size
         self.num_workers = num_workers
-        self.normalize_inverse = get_normalize_inverse(self.normalize)
-
-        transform = [torchvision.transforms.ToTensor()]
-        if self.normalize is not None:
-            transform.append(self.normalize)
-        self.transform = torchvision.transforms.Compose(transform)
+        self.normalize_inverse = get_normalize_inverse(self.transform)
 
     def get(self, train=True) -> torch.utils.data.DataLoader:
         dataset = self.dataset_cls(DATA_DIR, train=train, download=True,
@@ -59,5 +57,7 @@ class DataLoader:
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.dataset_cls.__name__}, " \
-               f"normalize={self.normalize}, batch_size={self.batch_size}, " \
-               f"eval_size={self.eval_size}, num_workers={self.num_workers})"
+               f"transform={self.transform}, batch_size={self.batch_size}, " \
+               f"eval_size={self.eval_size}, " \
+               f"num_workers={self.num_workers}), normalize_inverse=" \
+               f"{repr(self.normalize_inverse)})"

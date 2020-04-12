@@ -1,3 +1,4 @@
+import subprocess
 import time
 import warnings
 from abc import ABC, abstractmethod
@@ -85,8 +86,16 @@ class Trainer(ABC):
         pass
 
     def log_trainer(self):
+        self.monitor.log_model(self.model)
         self.monitor.log(f"Criterion: {self.criterion}")
         self.monitor.log(repr(self.data_loader))
+        self.monitor.log_self()
+        self.monitor.log(repr(self.accuracy_measure))
+        self.monitor.log(repr(self.mutual_info))
+        commit = subprocess.run(['git', 'rev-parse', 'HEAD'],
+                                stdout=subprocess.PIPE,
+                                universal_newlines=True)
+        self.monitor.log(f"Git commit: {commit.stdout}")
 
     def _init_monitor(self, mutual_info) -> Monitor:
         monitor = Monitor(
@@ -275,8 +284,6 @@ class Trainer(ABC):
         if n_epochs == 1:
             self.monitor.viz.with_markers = True
         self.monitor_functions()
-        self.monitor.log_model(self.model)
-        self.monitor.log_self()
         self.log_trainer()
         for name, layer in find_named_layers(self.model,
                                              layer_class=self.watch_modules):

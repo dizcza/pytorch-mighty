@@ -1,62 +1,16 @@
 import torch
 import torch.utils.data
-from torchvision import transforms
 from torchvision.datasets import MNIST
+from torchvision.transforms import Normalize, Compose, ToTensor
 from tqdm import tqdm
 
-from mighty.monitor.var_online import VarianceOnline
+from mighty.monitor.var_online import VarianceOnlineBatch
 from mighty.monitor.viz import VisdomMighty
-from mighty.utils.constants import DATA_DIR
+from mighty.utils.common import input_from_batch
+from mighty.utils.constants import DATA_DIR, BATCH_SIZE
 
 
-class _NormalizeTensor:
-    def __init__(self, mean, std):
-        # TODO replace by torchvision.Normalize
-        mean = self.as3d(mean)
-        std = self.as3d(std)
-        self.mean = torch.as_tensor(mean, dtype=torch.float32)
-        self.std = torch.as_tensor(std, dtype=torch.float32)
-
-    @staticmethod
-    def as3d(tensor):
-        """
-        :param tensor: (C,) or (C, H, W) Tensor
-        :return: (C, 1, 1) [unsqueezed] or (C, H, W) [original] Tensor
-        """
-        for dim_extra in range(3 - tensor.ndimension()):
-            tensor = tensor.unsqueeze(dim=-1)
-        return tensor
-
-    def __call__(self, tensor):
-        """
-        Args:
-            tensor (Tensor): Tensor image of size (C, H, W) to be normalized.
-
-        Returns:
-            Tensor: Normalized Tensor image.
-        """
-        mean = torch.as_tensor(self.mean, dtype=torch.float32,
-                               device=tensor.device)
-        std = torch.as_tensor(self.std, dtype=torch.float32,
-                              device=tensor.device)
-        tensor = tensor.clone()
-        tensor.sub_(mean).div_(std)
-        return tensor
-
-
-class NormalizeFromDataset(_NormalizeTensor):
-    """
-    Normalize dataset by subtracting channel-wise and pixel-wise mean and dividing by STD.
-    Mean and STD are estimated from a training set only.
-    """
-
-    def __init__(self, dataset_cls: type):
-        mean, std = dataset_mean_std(dataset_cls=dataset_cls)
-        std += 1e-6
-        super().__init__(mean=mean, std=std)
-
-
-class NormalizeInverse(_NormalizeTensor):
+class NormalizeInverse(Normalize):
     """
     Undoes the normalization and returns the reconstructed images in the input domain.
     """
@@ -66,17 +20,18 @@ class NormalizeInverse(_NormalizeTensor):
         std = torch.as_tensor(std, dtype=torch.float32)
         std_inv = 1 / (std + 1e-7)
         mean_inv = -mean * std_inv
-        super().__init__(mean=mean_inv, std=std_inv)
-
-    def __call__(self, tensor):
-        return super().__call__(tensor.clone())
+        super().__init__(mean=mean_inv, std=std_inv, inplace=False)
 
 
-def get_normalize_inverse(normalize_transform):
-    if isinstance(normalize_transform,
-                  (transforms.Normalize, _NormalizeTensor)):
-        return NormalizeInverse(mean=normalize_transform.mean,
-                                std=normalize_transform.std)
+def get_normalize_inverse(transform):
+    if isinstance(transform, Compose):
+        for child in transform.transforms:
+            norm_inv = get_normalize_inverse(child)
+            if norm_inv is not None:
+                return norm_inv
+    elif isinstance(transform, Normalize):
+        return NormalizeInverse(mean=transform.mean,
+                                std=transform.std)
     return None
 
 
@@ -89,15 +44,15 @@ def dataset_mean_std(dataset_cls: type):
                      ).with_suffix('.pt')
     if not mean_std_file.exists():
         dataset = dataset_cls(DATA_DIR, train=True, download=True,
-                              transform=transforms.ToTensor())
-        loader = torch.utils.data.DataLoader(dataset, batch_size=32,
-                                             shuffle=False, num_workers=4)
-        var_online = VarianceOnline()
-        for images, labels in tqdm(
+                              transform=ToTensor())
+        loader = torch.utils.data.DataLoader(dataset, batch_size=BATCH_SIZE,
+                                             shuffle=False)
+        var_online = VarianceOnlineBatch()
+        for batch in tqdm(
                 loader,
                 desc=f"{dataset_cls.__name__}: running online mean, std"):
-            for image in images:
-                var_online.update(new_tensor=image)
+            input = input_from_batch(batch)
+            var_online.update(new_tensor=input)
         mean, std = var_online.get_mean_std()
         mean_std_file.parent.mkdir(exist_ok=True, parents=True)
         with open(mean_std_file, 'wb') as f:

@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 import torchvision.models
 from PIL import Image
-from torchvision import transforms
 from torchvision.datasets import MNIST
 
 from mighty.models import MLP
@@ -11,7 +10,8 @@ from mighty.monitor.monitor import Monitor
 from mighty.monitor.mutual_info import *
 from mighty.trainer import TrainerGrad, MaskTrainer, Test
 from mighty.utils.common import set_seed
-from mighty.utils.data import NormalizeInverse, DataLoader
+from mighty.utils.data import get_normalize_inverse, DataLoader, \
+    TransformDefault
 from mighty.utils.domain import MonitorLevel
 
 
@@ -31,19 +31,12 @@ def train_mask():
     model.eval()
     for param in model.parameters():
         param.requires_grad_(False)
-    normalize = transforms.Normalize(
-        # ImageNet normalize
-        mean=[0.485, 0.456, 0.406],
-        std=[0.229, 0.224, 0.225]
-    )
-    transform = transforms.Compose([transforms.Resize(size=(224, 224)),
-                                    transforms.ToTensor(), normalize])
+    transform = TransformDefault.imagenet()
     accuracy_measure = AccuracyArgmax()
     monitor = Monitor(
         accuracy_measure=accuracy_measure,
         mutual_info=MutualInfoKMeans(),
-        normalize_inverse=NormalizeInverse(mean=normalize.mean,
-                                           std=normalize.std),
+        normalize_inverse=get_normalize_inverse(transform),
     )
     monitor.open(env_name='mask')
     image = Image.open("images/flute.jpg")
@@ -68,8 +61,7 @@ def train_mask():
 def train_grad(n_epoch=10, dataset_cls=MNIST):
     model = MLP(784, 128, 10)
     optimizer, scheduler = get_optimizer_scheduler(model)
-    normalize = transforms.Normalize(mean=(0.1307,), std=(0.3081,))
-    data_loader = DataLoader(dataset_cls, normalize=normalize)
+    data_loader = DataLoader(dataset_cls, TransformDefault.mnist())
     trainer = TrainerGrad(model,
                           criterion=nn.CrossEntropyLoss(),
                           data_loader=data_loader,
@@ -77,7 +69,7 @@ def train_grad(n_epoch=10, dataset_cls=MNIST):
                           scheduler=scheduler)
     # trainer.restore()  # uncomment to restore the saved state
     trainer.monitor.advanced_monitoring(level=MonitorLevel.FULL)
-    trainer.train(n_epochs=n_epoch, mutual_info_layers=0, cache=True)
+    trainer.train(n_epochs=n_epoch, mutual_info_layers=0)
 
 
 def test(model, n_epoch=500, dataset_cls=MNIST):
@@ -85,8 +77,7 @@ def test(model, n_epoch=500, dataset_cls=MNIST):
     for param in model.parameters():
         param.requires_grad_(False)
     criterion = nn.CrossEntropyLoss()
-    normalize = transforms.Normalize(mean=(0.1307,), std=(0.3081,))
-    data_loader = DataLoader(dataset_cls, normalize=normalize)
+    data_loader = DataLoader(dataset_cls, TransformDefault.mnist())
     trainer = Test(model=model, criterion=criterion, data_loader=data_loader)
     trainer.train(n_epochs=n_epoch, adversarial=True, mask_explain=True)
 

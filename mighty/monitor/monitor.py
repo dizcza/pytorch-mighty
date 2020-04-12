@@ -124,13 +124,7 @@ class Monitor:
 
     def log_self(self):
         self.log(f"{self.__class__.__name__}("
-                 f"accuracy_measure={self.accuracy_measure}, "
                  f"level={self._advanced_monitoring_level})")
-        self.log(repr(self.mutual_info))
-        commit = subprocess.run(['git', 'rev-parse', 'HEAD'],
-                                stdout=subprocess.PIPE,
-                                universal_newlines=True)
-        self.log(f"Git commit: {commit.stdout}")
 
     def log(self, text: str):
         self.viz.log(text)
