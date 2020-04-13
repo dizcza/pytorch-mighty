@@ -11,7 +11,7 @@ from mighty.monitor import MonitorAutoenc
 from mighty.monitor.accuracy import Accuracy, AccuracyAutoencoder
 from mighty.monitor.var_online import MeanOnline
 from mighty.utils.algebra import compute_psnr
-from mighty.utils.common import input_from_batch
+from mighty.utils.common import input_from_batch, batch_to_cuda
 from mighty.utils.data import DataLoader
 from .embedding import TrainerEmbedding
 
@@ -72,6 +72,7 @@ class TrainerAutoencoder(TrainerEmbedding):
 
     def plot_autoencoder(self):
         batch = self.data_loader.sample()
+        batch = batch_to_cuda(batch)
         input = input_from_batch(batch)
         if torch.cuda.is_available():
             input = input.cuda()

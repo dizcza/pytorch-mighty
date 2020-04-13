@@ -453,8 +453,8 @@ class MonitorEmbedding(Monitor):
             title='How much do patterns differ in L1 measure?',
         ))
 
-    def update_l1_norm(self, l1_norm: torch.Tensor):
-        # Neuron L1 norm, normalized by the batch size
+    def update_l1_neuron_norm(self, l1_norm: torch.Tensor):
+        # Neuron L1 norm, normalized by the batch size, heatmap
         l1_norm = l1_norm.unsqueeze(dim=0)
         title = 'Neuron L1 norm'
         self.viz.heatmap(l1_norm, win=title, opts=dict(

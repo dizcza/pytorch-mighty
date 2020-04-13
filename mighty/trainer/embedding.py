@@ -73,6 +73,6 @@ class TrainerEmbedding(TrainerGrad):
     def _epoch_finished(self, epoch, loss):
         self.monitor.update_sparsity(self.online['sparsity'].get_mean(),
                                      mode='train')
-        self.monitor.update_l1_norm(self.online['l1_norm'].get_mean())
+        self.monitor.update_l1_neuron_norm(self.online['l1_norm'].get_mean())
         self.monitor.clusters_heatmap(*self.online['clusters'].get_mean_std())
         super()._epoch_finished(epoch, loss)
