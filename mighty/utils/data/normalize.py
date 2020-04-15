@@ -22,6 +22,13 @@ class NormalizeInverse(Normalize):
         mean_inv = -mean * std_inv
         super().__init__(mean=mean_inv, std=std_inv, inplace=False)
 
+    def __call__(self, tensor):
+        # (B, C, H, W) tensor
+        dtype = tensor.dtype
+        mean = torch.as_tensor(self.mean, dtype=dtype, device=tensor.device)
+        std = torch.as_tensor(self.std, dtype=dtype, device=tensor.device)
+        tensor = tensor.sub(mean).div_(std)
+        return tensor
 
 def get_normalize_inverse(transform):
     if isinstance(transform, Compose):

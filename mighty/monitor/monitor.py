@@ -1,16 +1,14 @@
-import os
-import subprocess
 from collections import UserDict
-from typing import Callable, Optional
 
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.utils.data
 from sklearn.metrics import confusion_matrix
+from typing import Callable, Optional
 
 from mighty.monitor.accuracy import calc_accuracy, Accuracy
-from mighty.monitor.batch_timer import timer, ScheduleStep, ScheduleExp
+from mighty.monitor.batch_timer import timer, ScheduleExp
 from mighty.monitor.mutual_info.stub import MutualInfoStub
 from mighty.monitor.var_online import VarianceOnline
 from mighty.monitor.viz import VisdomMighty
@@ -46,6 +44,10 @@ class ParamRecord:
     def update_grad_variance(self):
         if self.param.grad is not None:
             self.grad_variance.update(self.param.grad.data.cpu())
+
+    def reset(self):
+        self.grad_variance.reset()
+        self.variance.reset()
 
 
 class ParamsDict(UserDict):
@@ -188,7 +190,6 @@ class Monitor:
         # if weight mean / std is small, the network makes random walk
         for name, param_record in self.param_records.items():
             mean, std = param_record.variance.get_mean_std()
-            param_record.variance.reset()
             snr = mean / std
             if not torch.isfinite(snr).all():
                 continue
@@ -213,7 +214,6 @@ class Monitor:
             if param.grad is None:
                 continue
             mean, std = param_record.grad_variance.get_mean_std()
-            param_record.grad_variance.reset()
             param_norm = param.data.norm(p=2).cpu()
 
             # matrix Frobenius norm is L2 norm
@@ -340,6 +340,11 @@ class Monitor:
             self.update_initial_difference()
             self.update_weight_trace_signal_to_noise_ratio()
             self.update_weight_histogram()
+        self.reset()
+
+    def reset(self):
+        for precord in self.param_records.values():
+            precord.reset()
 
     def register_layer(self, layer: nn.Module, prefix: str):
         self.mutual_info.register(layer, name=prefix)
@@ -418,8 +423,6 @@ class MonitorEmbedding(Monitor):
         if mean.shape != std.shape:
             raise ValueError("The mean and std must have the same shape and"
                              "come from VarianceOnline.get_mean_std().")
-        mean = mean.cpu()
-        std = std.cpu()
 
         def compute_manhattan_dist(tensor: torch.Tensor):
             l1_dist = tensor.unsqueeze(dim=1) - tensor.unsqueeze(dim=0)
@@ -438,9 +441,9 @@ class MonitorEmbedding(Monitor):
         )
         if n_classes <= self.n_classes_format_ytickstep_1:
             opts.update(ytickstep=1)
-        self.viz.heatmap(mean, win=win, opts=opts)
+        self.viz.heatmap(mean.cpu(), win=win, opts=opts)
         if save:
-            self.viz.heatmap(mean,
+            self.viz.heatmap(mean.cpu(),
                              win=f"{win}. Epoch {self.timer.epoch}",
                              opts=opts)
         normalizer = mean.norm(p=1, dim=1).mean()
@@ -479,6 +482,7 @@ class MonitorAutoenc(MonitorEmbedding):
             reconstructed = self.normalize_inverse(reconstructed)
         images_stacked = torch.cat([images, reconstructed], dim=0)
         images_stacked.clamp_(0, 1)
+        images_stacked = images_stacked.cpu()
         self.viz.images(images_stacked,
                         nrow=n_show, win='autoencoder', opts=dict(
                 title="Original (Top) | Reconstructed",
