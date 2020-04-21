@@ -12,7 +12,7 @@ import torch.utils.data
 
 from mighty.monitor.batch_timer import ScheduleExp
 from mighty.utils.common import clone_cpu
-from mighty.utils.hooks import LayersOrderHook
+from mighty.utils.hooks import get_layers_ordered
 
 
 class AccuracyFromMutualInfo:
@@ -100,16 +100,10 @@ class MutualInfo(ABC):
                 monitor_layers_count=1):
         self.eval_loader = loader
         self.prepare_input()
-
         images_batch, _ = next(self.eval_batches())
-        image_sample = images_batch[:1]
-        layers_order = LayersOrderHook(model)
-        if torch.cuda.is_available():
-            image_sample = image_sample.cuda()
-        with torch.no_grad():
-            model(image_sample)
+        image_sample = images_batch[0]
 
-        layers_ordered = layers_order.get_layers_ordered()
+        layers_ordered = get_layers_ordered(model, image_sample)
         layers_ordered = list(layer for layer in layers_ordered
                               if layer in self.layer_to_name)
         layers_ordered = layers_ordered[-monitor_layers_count:]

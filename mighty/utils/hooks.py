@@ -1,34 +1,42 @@
 import pickle
-import shutil
-from pathlib import Path
 
+import shutil
+import torch
 import torch.nn as nn
+from pathlib import Path
 
 from mighty.utils.constants import DUMPS_DIR
 
 
-class LayersOrderHook:
-    def __init__(self, model: nn.Module):
-        self.hooks = []
-        self.layers_ordered = []
-        self.register_hooks(model)
+def get_layers_ordered(model: nn.Module, input_sample: torch.Tensor,
+                       ignore_layers=(nn.Sequential,), ignore_children=()):
+    ignore_layers = ignore_layers + (type(model),)
+    hooks = []
+    layers_ordered = []
 
-    def register_hooks(self, model: nn.Module):
-        children = tuple(model.children())
-        if any(children):
+    def register_hooks(a_model: nn.Module):
+        children = tuple(a_model.children())
+        if any(children) and not isinstance(a_model, ignore_children):
             for layer in children:
-                self.register_hooks(layer)
-        else:
-            handle = model.register_forward_pre_hook(self.append_layer)
-            self.hooks.append(handle)
+                register_hooks(layer)
+        if not isinstance(a_model, ignore_layers):
+            handle = a_model.register_forward_pre_hook(append_layer)
+            hooks.append(handle)
 
-    def append_layer(self, layer, tensor_input):
-        self.layers_ordered.append(layer)
+    def append_layer(layer, tensor_input):
+        layers_ordered.append(layer)
 
-    def get_layers_ordered(self):
-        for handle in self.hooks:
-            handle.remove()
-        return tuple(self.layers_ordered)
+    register_hooks(model)
+
+    if torch.cuda.is_available():
+        input_sample = input_sample.cuda()
+    with torch.no_grad():
+        model(input_sample)
+
+    for handle in hooks:
+        handle.remove()
+
+    return layers_ordered
 
 
 class DumpActivationsHook:
