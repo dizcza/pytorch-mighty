@@ -193,7 +193,7 @@ class Trainer(ABC):
 
         return loss
 
-    def _epoch_finished(self, epoch, loss):
+    def _epoch_finished(self, loss):
         self.save()
         for online_measure in self.online.values():
             online_measure.reset()
@@ -309,4 +309,4 @@ class Trainer(ABC):
                         self.get_adversarial_examples())
                 if mask_explain:
                     self.train_mask()
-                self._epoch_finished(epoch, loss)
+                self._epoch_finished(loss)

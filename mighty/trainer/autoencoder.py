@@ -65,10 +65,10 @@ class TrainerAutoencoder(TrainerEmbedding):
             self.online['psnr'].update(psnr.cpu())
         super()._on_forward_pass_batch(batch, latent)
 
-    def _epoch_finished(self, epoch, loss):
+    def _epoch_finished(self, loss):
         self.plot_autoencoder()
         self.monitor.plot_psnr(self.online['psnr'].get_mean())
-        super()._epoch_finished(epoch, loss)
+        super()._epoch_finished(loss)
 
     def plot_autoencoder(self):
         batch = self.data_loader.sample()

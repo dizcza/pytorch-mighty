@@ -171,7 +171,7 @@ class MutualInfoNeuralEstimation(MutualInfoPCA):
             mi_trainer.reset()
         for epoch in range(self.estimate_epochs):
             for mi_trainer in self.trainers[layer_name]:
-                mi_trainer.scheduler.step(epoch=epoch)
+                mi_trainer.scheduler.step()
             permutations = torch.randperm(len(activations)).split(BATCH_SIZE)
             for batch_permutation in permutations:
                 activations_batch = activations[batch_permutation]

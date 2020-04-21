@@ -106,28 +106,34 @@ class TrainerGrad(Trainer):
         self.monitor.update_accuracy_epoch(labels_pred, labels_full,
                                            mode='train')
 
-    def _epoch_finished(self, epoch, loss):
+    def _epoch_finished(self, loss):
         self.update_accuracy()
         if isinstance(self.scheduler, ReduceLROnPlateau):
-            self.scheduler.step(metrics=loss, epoch=epoch)
+            self.scheduler.step(metrics=loss)
         elif isinstance(self.scheduler, _LRScheduler):
-            self.scheduler.step(epoch=epoch)
+            self.scheduler.step()
         self._labels['true'].clear()
         self._labels['predicted'].clear()
-        super()._epoch_finished(epoch, loss)
+        super()._epoch_finished(loss)
 
     def state_dict(self):
         state = super().state_dict()
         state['optimizer'] = self.optimizer.state_dict()
         state['criterion'] = self.criterion.state_dict()
+        if self.scheduler is not None:
+            state['scheduler'] = self.scheduler.state_dict()
         return state
 
     def restore(self, checkpoint_path=None, strict=True):
-        checkpoint_state = super().restore(checkpoint_path=checkpoint_path, strict=strict)
+        checkpoint_state = super().restore(checkpoint_path=checkpoint_path,
+                                           strict=strict)
         try:
             if checkpoint_state is not None:
                 self.optimizer.load_state_dict(checkpoint_state['optimizer'])
                 self.criterion.load_state_dict(checkpoint_state['criterion'])
+                scheduler_state = checkpoint_state.get('scheduler')
+                if self.scheduler is not None and scheduler_state is not None:
+                    self.scheduler.load_state_dict(scheduler_state)
         except Exception as exception:
-            print("Couldn't restore optimizer: ", exception)
+            print("Couldn't restore the trained state: ", exception)
         return checkpoint_state
