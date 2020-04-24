@@ -266,6 +266,12 @@ class Trainer(ABC):
         self.monitor.update_loss(loss=loss_online.get_mean(),
                                  mode='batch')
 
+    def _open_monitor(self):
+        if not self.monitor.is_active:
+            # new environment
+            self.monitor.open(env_name=self.env_name)
+            self.monitor.clear()
+
     def train(self, n_epochs=10, epoch_update_step=1, mutual_info_layers=1,
               adversarial=False, mask_explain=False):
         """
@@ -277,10 +283,7 @@ class Trainer(ABC):
         :param mask_explain: train the image mask that 'explains' network behaviour?
         """
         print(self.model)
-        if not self.monitor.is_active:
-            # new environment
-            self.monitor.open(env_name=self.env_name)
-            self.monitor.clear()
+        self._open_monitor()
         if n_epochs == 1:
             self.monitor.viz.with_markers = True
         self.monitor_functions()
@@ -309,4 +312,6 @@ class Trainer(ABC):
                         self.get_adversarial_examples())
                 if mask_explain:
                     self.train_mask()
+                # TODO: epoch_finished should be called on each epoch
+                # independently of the update step
                 self._epoch_finished(loss)

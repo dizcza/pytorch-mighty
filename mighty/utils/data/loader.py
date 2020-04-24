@@ -23,6 +23,13 @@ class DataLoader:
         self.num_workers = num_workers
         self.normalize_inverse = get_normalize_inverse(self.transform)
 
+        # hack to check if the dataset is with labels
+        self.has_labels = False
+        sample = self.sample()
+        if isinstance(sample, (tuple, list)) and len(sample) > 1:
+            labels = sample[1]
+            self.has_labels = labels.dtype is torch.long
+
     def get(self, train=True) -> torch.utils.data.DataLoader:
         dataset = self.dataset_cls(DATA_DIR, train=train, download=True,
                                    transform=self.transform)
@@ -53,6 +60,7 @@ class DataLoader:
             yield batch
 
     def sample(self):
+        # always returns the first sample, no shuffling!
         return next(iter(self.eval()))
 
     def __repr__(self):

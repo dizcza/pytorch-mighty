@@ -28,6 +28,8 @@ def get_layers_ordered(model: nn.Module, input_sample: torch.Tensor,
 
     register_hooks(model)
 
+    if input_sample.ndim == 3:
+        input_sample = input_sample.unsqueeze(dim=0)  # batch of 1 sample
     if torch.cuda.is_available():
         input_sample = input_sample.cuda()
     with torch.no_grad():

@@ -68,10 +68,10 @@ class TrainerGrad(Trainer):
         return loss
 
     def _on_forward_pass_batch(self, batch, output):
-        if isinstance(batch, torch.Tensor):
+        if not self.data_loader.has_labels:
             # unsupervised, no labels
             return
-        input, labels = batch
+        _, labels = batch
         self._labels['true'].append(labels)
         if isinstance(self.accuracy_measure, AccuracyArgmax):
             # softmax

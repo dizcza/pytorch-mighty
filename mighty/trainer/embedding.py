@@ -64,7 +64,7 @@ class TrainerEmbedding(TrainerGrad):
         sparsity = compute_sparsity(output)
         self.online['sparsity'].update(sparsity.cpu())
         self.online['l1_norm'].update(output.abs().mean(dim=0).cpu())
-        if not isinstance(batch, torch.Tensor):
+        if self.data_loader.has_labels:
             # supervised
             input, labels = batch
             self.online['clusters'].update(output, labels)

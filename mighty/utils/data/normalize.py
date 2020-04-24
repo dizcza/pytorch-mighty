@@ -31,14 +31,21 @@ class NormalizeInverse(Normalize):
         return tensor
 
 def get_normalize_inverse(transform):
+    normalize = get_normalize(transform)
+    if normalize:
+        return NormalizeInverse(mean=normalize.mean,
+                                std=normalize.std)
+    return None
+
+
+def get_normalize(transform, normalize_cls=Normalize):
     if isinstance(transform, Compose):
         for child in transform.transforms:
-            norm_inv = get_normalize_inverse(child)
+            norm_inv = get_normalize(child, normalize_cls)
             if norm_inv is not None:
                 return norm_inv
     elif isinstance(transform, Normalize):
-        return NormalizeInverse(mean=transform.mean,
-                                std=transform.std)
+        return transform
     return None
 
 
