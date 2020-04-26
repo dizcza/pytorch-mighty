@@ -157,7 +157,7 @@ class Trainer(ABC):
     def _get_loss(self, batch, output):
         raise NotImplementedError()
 
-    def _on_forward_pass_batch(self, batch, output):
+    def _on_forward_pass_batch(self, batch, output, train):
         pass
 
     def _forward(self, batch):
@@ -180,9 +180,7 @@ class Trainer(ABC):
                 batch = batch_to_cuda(batch)
                 output = self._forward(batch)
                 loss = self._get_loss(batch, output)
-                if train:
-                    # evaluation
-                    self._on_forward_pass_batch(batch, output)
+                self._on_forward_pass_batch(batch, output, train)
                 loss_online.update(loss)
 
         loss = loss_online.get_mean()

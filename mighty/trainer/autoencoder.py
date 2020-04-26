@@ -55,7 +55,10 @@ class TrainerAutoencoder(TrainerEmbedding):
             loss = self.criterion(reconstructed, input)
         return loss
 
-    def _on_forward_pass_batch(self, batch, output):
+    def _on_forward_pass_batch(self, batch, output, train):
+        if not train:
+            super()._on_forward_pass_batch(batch, output, train)
+            return
         input = input_from_batch(batch)
         latent, reconstructed = output
         if isinstance(self.criterion, nn.BCEWithLogitsLoss):
@@ -63,7 +66,7 @@ class TrainerAutoencoder(TrainerEmbedding):
         psnr = compute_psnr(input, reconstructed)
         if torch.isfinite(psnr):
             self.online['psnr'].update(psnr.cpu())
-        super()._on_forward_pass_batch(batch, latent)
+        super()._on_forward_pass_batch(batch, latent, train)
 
     def _epoch_finished(self, loss):
         self.plot_autoencoder()

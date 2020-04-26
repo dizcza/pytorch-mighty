@@ -67,7 +67,10 @@ class TrainerGrad(Trainer):
         self.optimizer.step(closure=None)
         return loss
 
-    def _on_forward_pass_batch(self, batch, output):
+    def _on_forward_pass_batch(self, batch, output, train):
+        if not train:
+            super()._on_forward_pass_batch(batch, output, train)
+            return
         if not self.data_loader.has_labels:
             # unsupervised, no labels
             return
@@ -77,7 +80,7 @@ class TrainerGrad(Trainer):
             # softmax
             predicted = self.accuracy_measure.predict(output)
             self._labels['predicted'].append(predicted)
-        self.accuracy_measure.partial_fit(output, labels)
+        self.accuracy_measure.partial_fit(output, labels, train)
 
     def _get_loss(self, batch, output):
         input, labels = batch
