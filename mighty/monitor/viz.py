@@ -23,14 +23,6 @@ class VisdomMighty(visdom.Visdom):
         self.legends = defaultdict(list)
         self.with_markers = False
 
-    def register_plot(self, win: str, legend: Iterable[str]):
-        legend = list(legend)
-        self.legends[win] = legend
-        if self.win_exists(win):
-            return
-        nan = np.full(shape=(1, len(legend)), fill_value=np.nan)
-        self.line(X=nan, Y=nan, win=win, opts=dict(legend=legend))
-
     def line_update(self, y: Union[float, List[float]], opts: dict, name=None):
         y = np.array([y])
         n_lines = y.shape[-1]
@@ -48,8 +40,7 @@ class VisdomMighty(visdom.Visdom):
             opts['markersize'] = 7
         self.line(Y=y, X=x, win=win, opts=opts, update='append', name=name)
         if name is not None:
-            self.update_window_opts(
-                win=win, opts=dict(legend=self.legends[win], title=win))
+            self.update_window_opts(win=win, opts=dict(legend=[], title=win))
 
     def log(self, text: str):
         self.text(f"{time.strftime('%Y-%b-%d %H:%M')} {text}",
