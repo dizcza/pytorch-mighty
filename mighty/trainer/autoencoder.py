@@ -74,16 +74,18 @@ class TrainerAutoencoder(TrainerEmbedding):
         super()._epoch_finished(loss)
 
     def plot_autoencoder(self):
+        # plot AutoEncoder reconstruction
         batch = self.data_loader.sample()
         batch = batch_to_cuda(batch)
-        input = input_from_batch(batch)
-        if torch.cuda.is_available():
-            input = input.cuda()
         mode_saved = self.model.training
         self.model.train(False)
         with torch.no_grad():
             latent, reconstructed = self._forward(batch)
         if isinstance(self.criterion, nn.BCEWithLogitsLoss):
             reconstructed = reconstructed.sigmoid()
-        self.monitor.plot_autoencoder(input, reconstructed)
+        self._plot_autoencoder(batch, reconstructed)
         self.model.train(mode_saved)
+
+    def _plot_autoencoder(self, batch, reconstructed):
+        input = input_from_batch(batch)
+        self.monitor.plot_autoencoder(input, reconstructed)
