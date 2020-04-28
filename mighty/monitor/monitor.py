@@ -114,6 +114,7 @@ class Monitor:
         :param env_name: Visdom environment name
         """
         self.viz = VisdomMighty(env=env_name)
+        self.register_comments_window()
 
     def log_model(self, model: nn.Module, space='-'):
         lines = []
@@ -130,6 +131,26 @@ class Monitor:
 
     def log(self, text: str):
         self.viz.log(text)
+
+    def register_comments_window(self):
+        txt_init = "Enter comments:"
+        win = 'comments'
+
+        def type_callback(event):
+            if event['event_type'] == 'KeyPress':
+                curr_txt = event['pane_data']['content']
+                if event['key'] == 'Enter':
+                    curr_txt += '<br>'
+                elif event['key'] == 'Backspace':
+                    curr_txt = curr_txt[:-1]
+                elif event['key'] == 'Delete':
+                    curr_txt = txt_init
+                elif len(event['key']) == 1:
+                    curr_txt += event['key']
+                self.viz.text(curr_txt, win='comments')
+
+        self.viz.text(txt_init, win=win)
+        self.viz.register_event_handler(type_callback, win)
 
     def batch_finished(self, model: nn.Module):
         self.param_records.batch_finished()
@@ -390,12 +411,12 @@ class Monitor:
                 legend=legend,
             ))
 
-    def plot_psnr(self, psnr, win=''):
+    def plot_psnr(self, psnr, mode='train'):
         self.viz.line_update(y=psnr, opts=dict(
             xlabel='Epoch',
             ylabel='PSNR',
-            title=f'Peak signal-to-noise ratio {win}',
-        ))
+            title='Peak signal-to-noise ratio',
+        ), name=mode)
 
 
 class MonitorEmbedding(Monitor):
