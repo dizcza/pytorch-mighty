@@ -43,7 +43,11 @@ class TrainerAutoencoder(TrainerEmbedding):
 
     def _init_online_measures(self):
         online = super()._init_online_measures()
-        online['psnr'] = MeanOnline()  # peak signal-to-noise ratio
+
+        # peak signal-to-noise ratio
+        online['psnr-train'] = MeanOnline()
+        online['psnr-test'] = MeanOnline()
+
         return online
 
     def _get_loss(self, batch, output):
@@ -56,21 +60,21 @@ class TrainerAutoencoder(TrainerEmbedding):
         return loss
 
     def _on_forward_pass_batch(self, batch, output, train):
-        if not train:
-            super()._on_forward_pass_batch(batch, output, train)
-            return
         input = input_from_batch(batch)
         latent, reconstructed = output
         if isinstance(self.criterion, nn.BCEWithLogitsLoss):
             reconstructed = reconstructed.sigmoid()
         psnr = compute_psnr(input, reconstructed)
+        fold = 'train' if train else 'test'
         if torch.isfinite(psnr):
-            self.online['psnr'].update(psnr.cpu())
+            self.online[f'psnr-{fold}'].update(psnr.cpu())
         super()._on_forward_pass_batch(batch, latent, train)
 
     def _epoch_finished(self, loss):
         self.plot_autoencoder()
-        self.monitor.plot_psnr(self.online['psnr'].get_mean())
+        for fold in ('train', 'test'):
+            self.monitor.plot_psnr(self.online[f'psnr-{fold}'].get_mean(),
+                                   mode=fold)
         super()._epoch_finished(loss)
 
     def plot_autoencoder(self):
