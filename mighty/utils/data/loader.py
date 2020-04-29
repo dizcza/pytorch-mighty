@@ -6,7 +6,7 @@ from torchvision.transforms import ToTensor
 from tqdm import tqdm
 
 from mighty.utils.constants import DATA_DIR, BATCH_SIZE
-from mighty.utils.data.normalize import get_normalize_inverse, get_normalize
+from mighty.utils.data.normalize import get_normalize_inverse
 
 
 class DataLoader:
@@ -21,7 +21,6 @@ class DataLoader:
             eval_size = float('inf')
         self.eval_size = eval_size
         self.num_workers = num_workers
-        self.normalize = get_normalize(self.transform)
         self.normalize_inverse = get_normalize_inverse(self.transform)
 
         # hack to check if the dataset is with labels
@@ -66,6 +65,7 @@ class DataLoader:
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.dataset_cls.__name__}, " \
+               f"has_labels={self.has_labels}, "\
                f"transform={self.transform}, batch_size={self.batch_size}, " \
                f"eval_size={self.eval_size}, " \
                f"num_workers={self.num_workers}), normalize_inverse=" \

@@ -8,8 +8,10 @@ class Flatten(nn.Module):
 
 
 class Reshape(nn.Module):
-    def __init__(self, height: int, width: int):
+    def __init__(self, height: int, width: int = None):
         super().__init__()
+        if width is None:
+            width = height
         self.height = height
         self.width = width
 

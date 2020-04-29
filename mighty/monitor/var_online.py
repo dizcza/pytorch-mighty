@@ -118,7 +118,7 @@ class SumOnlineBatch:
         return self.sum.clone()
 
     def reset(self):
-        self.sum = 0
+        self.sum = None
         self.count = 0
 
 
