@@ -133,6 +133,7 @@ class Trainer(ABC):
         """
         if checkpoint_path is None:
             checkpoint_path = self.checkpoint_path
+        checkpoint_path = Path(checkpoint_path)
         if not checkpoint_path.exists():
             print(f"Checkpoint '{checkpoint_path}' doesn't exist. "
                   f"Nothing to restore.")
@@ -264,8 +265,9 @@ class Trainer(ABC):
         self.monitor.update_loss(loss=loss_online.get_mean(),
                                  mode='batch')
 
-    def _open_monitor(self):
-        if not self.monitor.is_active:
+    def open_monitor(self):
+        # visdom can be already initialized via trainer.restore()
+        if self.monitor.viz is None:
             # new environment
             self.monitor.open(env_name=self.env_name)
             self.monitor.clear()
@@ -281,7 +283,7 @@ class Trainer(ABC):
         :param mask_explain: train the image mask that 'explains' network behaviour?
         """
         print(self.model)
-        self._open_monitor()
+        self.open_monitor()
         if n_epochs == 1:
             self.monitor.viz.with_markers = True
         self.monitor_functions()

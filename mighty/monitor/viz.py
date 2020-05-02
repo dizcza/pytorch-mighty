@@ -22,6 +22,27 @@ class VisdomMighty(visdom.Visdom):
         self.timer = timer
         self.legends = defaultdict(list)
         self.with_markers = False
+        self.register_comments_window()
+
+    def register_comments_window(self):
+        txt_init = "Enter comments:"
+        win = 'comments'
+
+        def type_callback(event):
+            if event['event_type'] == 'KeyPress':
+                curr_txt = event['pane_data']['content']
+                if event['key'] == 'Enter':
+                    curr_txt += '<br>'
+                elif event['key'] == 'Backspace':
+                    curr_txt = curr_txt[:-1]
+                elif event['key'] == 'Delete':
+                    curr_txt = txt_init
+                elif len(event['key']) == 1:
+                    curr_txt += event['key']
+                self.viz.text(curr_txt, win='comments')
+
+        self.text(txt_init, win=win)
+        self.register_event_handler(type_callback, win)
 
     def line_update(self, y: Union[float, List[float]], opts: dict, name=None):
         y = np.array([y])

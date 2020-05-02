@@ -97,7 +97,7 @@ def compute_sparsity(tensor):
     Returns
     -------
     sparsity : torch.Tensor
-        L1 sparsity of `tensor`.
+        Mean L1 sparsity of `tensor`, scalar.
 
     """
     if tensor.ndim == 1:
