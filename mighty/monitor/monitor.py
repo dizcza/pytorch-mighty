@@ -473,21 +473,28 @@ class MonitorEmbedding(Monitor):
 
 class MonitorAutoenc(MonitorEmbedding):
 
-    def plot_autoencoder(self, images, reconstructed, n_show=10):
+    def plot_autoencoder(self, images, reconstructed, *tensors, labels=(),
+                         normalize_inverse=True, n_show=10):
         if images.shape != reconstructed.shape:
             raise ValueError("Input & reconstructed image shapes differ")
         n_show = min(images.shape[0], n_show)
-        images = images[: n_show]
-        reconstructed = reconstructed[: n_show]
-        if self.normalize_inverse is not None:
-            images = self.normalize_inverse(images)
-            reconstructed = self.normalize_inverse(reconstructed)
-        images_stacked = torch.cat([images, reconstructed], dim=0)
+        combined = [images, reconstructed, *tensors]
+        labels = ['Original (Top)', 'Reconstructed', *labels]
+        images_stacked = []
+        for tensor_id, tensor in enumerate(combined):
+            tensor = tensor[:n_show]
+            if normalize_inverse and self.normalize_inverse is not None:
+                tensor = self.normalize_inverse(tensor)
+            if tensor_id == len(labels):
+                # user has not specified the labels
+                labels.append('')
+            images_stacked.append(tensor)
+        images_stacked = torch.cat(images_stacked, dim=0)
         images_stacked.clamp_(0, 1)
         images_stacked = images_stacked.cpu()
         self.viz.images(images_stacked,
                         nrow=n_show, win='autoencoder', opts=dict(
-                title="Original (Top) | Reconstructed",
+                title=' | '.join(labels),
                 width=1000,
                 height=None,
             ))
