@@ -1,4 +1,5 @@
 import subprocess
+import sys
 import time
 import warnings
 from abc import ABC, abstractmethod
@@ -92,7 +93,9 @@ class Trainer(ABC):
         self.monitor.log_self()
         self.monitor.log(repr(self.accuracy_measure))
         self.monitor.log(repr(self.mutual_info))
-        commit = subprocess.run(['git', 'rev-parse', 'HEAD'],
+        git_dir = Path(sys.argv[0]).parent / '.git'
+        commit = subprocess.run(['git', '--git-dir', str(git_dir),
+                                 'rev-parse', 'HEAD'],
                                 stdout=subprocess.PIPE,
                                 universal_newlines=True)
         self.monitor.log(f"Git commit: {commit.stdout}")
