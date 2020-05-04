@@ -5,7 +5,7 @@ import torch.nn as nn
 from torch.optim.lr_scheduler import _LRScheduler, ReduceLROnPlateau
 from torch.optim.optimizer import Optimizer
 
-from mighty.monitor.accuracy import AccuracyArgmax
+from mighty.monitor.accuracy import AccuracyArgmax, calc_accuracy
 from mighty.utils.common import batch_to_cuda
 from mighty.utils.data import DataLoader
 from .trainer import Trainer
@@ -80,7 +80,7 @@ class TrainerGrad(Trainer):
             # softmax
             predicted = self.accuracy_measure.predict(output)
             self._labels['predicted'].append(predicted)
-        self.accuracy_measure.partial_fit(output, labels, train)
+        self.accuracy_measure.partial_fit(output, labels)
 
     def _get_loss(self, batch, output):
         input, labels = batch
@@ -108,6 +108,8 @@ class TrainerGrad(Trainer):
 
         self.monitor.update_accuracy_epoch(labels_pred, labels_full,
                                            mode='train')
+        accuracy = calc_accuracy(labels_full, labels_pred)
+        self.update_best_score(accuracy, score_type='accuracy')
 
     def _epoch_finished(self, loss):
         self.update_accuracy()
@@ -127,8 +129,8 @@ class TrainerGrad(Trainer):
             state['scheduler'] = self.scheduler.state_dict()
         return state
 
-    def restore(self, checkpoint_path=None, strict=True):
-        checkpoint_state = super().restore(checkpoint_path=checkpoint_path,
+    def restore(self, checkpoint_path=None, best=False, strict=True):
+        checkpoint_state = super().restore(checkpoint_path, best=best,
                                            strict=strict)
         try:
             if checkpoint_state is not None:

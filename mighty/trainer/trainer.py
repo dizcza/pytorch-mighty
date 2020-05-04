@@ -78,10 +78,13 @@ class Trainer(ABC):
         self.accuracy_measure = accuracy_measure
         self.monitor = self._init_monitor(mutual_info)
         self.online = self._init_online_measures()
+        self.best_score = 0.
 
-    @property
-    def checkpoint_path(self):
-        return self.checkpoint_dir / (self.env_name + '.pt')
+    def checkpoint_path(self, best=False):
+        checkpoint_dir = self.checkpoint_dir
+        if best:
+            checkpoint_dir = self.checkpoint_dir / "best"
+        return checkpoint_dir / (self.env_name + '.pt')
 
     def monitor_functions(self):
         pass
@@ -115,10 +118,16 @@ class Trainer(ABC):
     def train_batch(self, batch):
         raise NotImplementedError()
 
-    def save(self):
-        self.checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
+    def update_best_score(self, score, score_type=''):
+        if score > self.best_score:
+            self.best_score = score
+            self.save(best=True)
+
+    def save(self, best=False):
+        checkpoint_path = self.checkpoint_path(best)
+        checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
         try:
-            torch.save(self.state_dict(), self.checkpoint_path)
+            torch.save(self.state_dict(), checkpoint_path)
         except PermissionError as error:
             print(error)
 
@@ -127,15 +136,16 @@ class Trainer(ABC):
             "model_state": self.model.state_dict(),
             "epoch": self.timer.epoch,
             "env_name": self.env_name,
+            "best_score": self.best_score,
         }
 
-    def restore(self, checkpoint_path=None, strict=True):
+    def restore(self, checkpoint_path=None, best=False, strict=True):
         """
         :param checkpoint_path: train checkpoint path to restore
         :param strict: model's load_state_dict strict argument
         """
         if checkpoint_path is None:
-            checkpoint_path = self.checkpoint_path
+            checkpoint_path = self.checkpoint_path(best)
         checkpoint_path = Path(checkpoint_path)
         if not checkpoint_path.exists():
             print(f"Checkpoint '{checkpoint_path}' doesn't exist. "
@@ -154,6 +164,7 @@ class Trainer(ABC):
             return None
         self.env_name = checkpoint_state['env_name']
         self.timer.set_epoch(checkpoint_state['epoch'])
+        self.best_score = checkpoint_state['best_score']
         self.monitor.open(env_name=self.env_name)
         print(f"Restored model state from {checkpoint_path}.")
         return checkpoint_state
