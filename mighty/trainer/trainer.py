@@ -301,8 +301,6 @@ class Trainer(ABC):
                                      model=self.model,
                                      monitor_layers_count=mutual_info_layers)
 
-        print(f"Training '{self.model.__class__.__name__}'")
-
         for epoch in range(self.timer.epoch, self.timer.epoch + n_epochs):
             self.train_epoch(epoch=epoch)
             if epoch % epoch_update_step == 0:

@@ -90,6 +90,6 @@ class TrainerAutoencoder(TrainerEmbedding):
         self._plot_autoencoder(batch, reconstructed)
         self.model.train(mode_saved)
 
-    def _plot_autoencoder(self, batch, reconstructed):
+    def _plot_autoencoder(self, batch, reconstructed, mode='train'):
         input = input_from_batch(batch)
-        self.monitor.plot_autoencoder(input, reconstructed)
+        self.monitor.plot_autoencoder(input, reconstructed, mode=mode)
