@@ -504,20 +504,22 @@ class MonitorAutoenc(MonitorEmbedding):
                 height=None,
             ))
 
-    def plot_reconstruction_error(self, pixel_missed, thresholds):
+    def plot_reconstruction_error(self, pixel_missed, thresholds,
+                                  optimal_id=None):
         title = "Reconstruction error"
         self.viz.line(Y=pixel_missed, X=thresholds, win=title, opts=dict(
             title=title,
             xlabel="reconstruct threshold",
             ylabel="#incorrect_pixels"
         ))
-        threshold_argmin = pixel_missed.argmin()
-        self.viz.line_update(pixel_missed[threshold_argmin], opts=dict(
+        if optimal_id is None:
+            optimal_id = pixel_missed.argmin()
+        self.viz.line_update(pixel_missed[optimal_id], opts=dict(
             title="Reconstruction error lowest",
             xlabel="Epoch",
             ylabel="min_thr #incorrect_pixels"
         ))
-        self.viz.line_update(thresholds[threshold_argmin].item(), opts=dict(
+        self.viz.line_update(thresholds[optimal_id].item(), opts=dict(
             title="Reconstruction threshold",
             xlabel="Epoch",
             ylabel="Thr. that minimizes the error"

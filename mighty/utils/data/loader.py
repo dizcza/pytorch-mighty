@@ -28,7 +28,8 @@ class DataLoader:
         sample = self.sample()
         if isinstance(sample, (tuple, list)) and len(sample) > 1:
             labels = sample[1]
-            self.has_labels = labels.dtype is torch.long
+            self.has_labels = isinstance(labels, torch.Tensor) \
+                              and labels.dtype is torch.long
 
     def get(self, train=True) -> torch.utils.data.DataLoader:
         dataset = self.dataset_cls(DATA_DIR, train=train, download=True,
