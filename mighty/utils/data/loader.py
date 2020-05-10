@@ -10,11 +10,11 @@ from mighty.utils.data.normalize import get_normalize_inverse
 
 
 class DataLoader:
-    def __init__(self, dataset_cls,
-                 transform=ToTensor(),
-                 batch_size=BATCH_SIZE,
-                 eval_size=None, num_workers=0):
+    def __init__(self, dataset_cls, transform=ToTensor(),
+                 loader_cls=torch.utils.data.DataLoader,
+                 batch_size=BATCH_SIZE, eval_size=None, num_workers=0):
         self.dataset_cls = dataset_cls
+        self.loader_cls = loader_cls
         self.transform = transform
         self.batch_size = batch_size
         if eval_size is None:
@@ -34,19 +34,19 @@ class DataLoader:
     def get(self, train=True) -> torch.utils.data.DataLoader:
         dataset = self.dataset_cls(DATA_DIR, train=train, download=True,
                                    transform=self.transform)
-        loader = torch.utils.data.DataLoader(dataset,
-                                             batch_size=self.batch_size,
-                                             shuffle=train,
-                                             num_workers=self.num_workers)
+        loader = self.loader_cls(dataset,
+                                 batch_size=self.batch_size,
+                                 shuffle=train,
+                                 num_workers=self.num_workers)
         return loader
 
     def eval(self, verbose=False) -> torch.utils.data.DataLoader:
         dataset = self.dataset_cls(DATA_DIR, train=True, download=True,
                                    transform=self.transform)
-        eval_loader = torch.utils.data.DataLoader(dataset,
-                                                  batch_size=self.batch_size,
-                                                  shuffle=False,
-                                                  num_workers=self.num_workers)
+        eval_loader = self.loader_cls(dataset,
+                                      batch_size=self.batch_size,
+                                      shuffle=False,
+                                      num_workers=self.num_workers)
 
         n_samples_take = min(self.eval_size, len(dataset))
         n_batches = math.ceil(n_samples_take / self.batch_size)
@@ -66,7 +66,7 @@ class DataLoader:
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.dataset_cls.__name__}, " \
-               f"has_labels={self.has_labels}, "\
+               f"has_labels={self.has_labels}, " \
                f"transform={self.transform}, batch_size={self.batch_size}, " \
                f"eval_size={self.eval_size}, " \
                f"num_workers={self.num_workers}), normalize_inverse=" \
