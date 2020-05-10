@@ -15,7 +15,7 @@ def batch_to_cuda(batch):
         batch = batch.cuda()
     else:
         # iterable
-        batch = tuple(tensor.cuda() for tensor in batch)
+        batch = tuple(map(batch_to_cuda, batch))
     return batch
 
 
