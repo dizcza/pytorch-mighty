@@ -471,7 +471,7 @@ class MonitorEmbedding(Monitor):
         ))
 
 
-class MonitorAutoenc(MonitorEmbedding):
+class MonitorAutoencoder(MonitorEmbedding):
 
     def plot_autoencoder(self, images, reconstructed, *tensors, labels=(),
                          normalize_inverse=True, n_show=10, mode='train'):

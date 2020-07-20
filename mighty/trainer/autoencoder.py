@@ -7,7 +7,7 @@ from torch.optim.lr_scheduler import _LRScheduler, ReduceLROnPlateau
 from torch.optim.optimizer import Optimizer
 
 from mighty.loss import LossPenalty
-from mighty.monitor import MonitorAutoenc
+from mighty.monitor import MonitorAutoencoder
 from mighty.monitor.accuracy import Accuracy, AccuracyAutoencoder
 from mighty.monitor.var_online import MeanOnline
 from mighty.utils.algebra import compute_psnr
@@ -33,8 +33,8 @@ class TrainerAutoencoder(TrainerEmbedding):
                          optimizer=optimizer, scheduler=scheduler,
                          accuracy_measure=accuracy_measure, **kwargs)
 
-    def _init_monitor(self, mutual_info) -> MonitorAutoenc:
-        monitor = MonitorAutoenc(
+    def _init_monitor(self, mutual_info) -> MonitorAutoencoder:
+        monitor = MonitorAutoencoder(
             accuracy_measure=self.accuracy_measure,
             mutual_info=mutual_info,
             normalize_inverse=self.data_loader.normalize_inverse

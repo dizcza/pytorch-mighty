@@ -2,9 +2,13 @@
 
 The Mighty Monitor Trainer for your pytorch models. Powered by [Visdom](https://github.com/facebookresearch/visdom).
 
-Requires Python 3.6+
+![](images/training-progress.png)
+
+
 
 ### Quick start
+
+Requires Python 3.6+
 
 1. Install [pytorch](https://pytorch.org/)
 2. `$ pip install pytorch-mighty`

@@ -135,6 +135,13 @@ class AccuracyEmbedding(Accuracy):
 
 
 class AccuracyAutoencoder(AccuracyEmbedding):
+    """
+    AccuracyAutoencoder measures the accuracy of correctly classifying the
+    class label, if provided, based on the embedding vector.
+
+    If the true labels are not known, i.e. unsupervised learning regime,
+    it does nothing.
+    """
 
     def predict_cached(self):
         if not self.cache:
