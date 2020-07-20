@@ -16,6 +16,7 @@ from mighty.models import MLP
 from mighty.monitor.mutual_info._pca_preprocess import MutualInfoPCA
 from mighty.utils.algebra import onehot, exponential_moving_average
 from mighty.utils.constants import BATCH_SIZE
+from mighty.utils.data import DataLoader
 
 
 class MINE_Net(nn.Module):
@@ -48,16 +49,16 @@ class MINE_Net(nn.Module):
 
 
 class MINE_Trainer:
-    log2_e = np.log2(np.e)
-
     """
     Parameters
     ----------
-    mine_model : MutualInfoNeuralEstimationNetwork
+    mine_model : MINE_Net
         A network to estimate mutual information.
     learning_rate : float
         Optimizer learning rate.
     """
+
+    log2_e = np.log2(np.e)
 
     def __init__(self, mine_model: nn.Module, learning_rate=1e-3,
                  smooth_filter_size=30):
@@ -66,16 +67,20 @@ class MINE_Trainer:
         self.mine_model = mine_model
         self.optimizer = torch.optim.Adam(self.mine_model.parameters(),
                                           lr=learning_rate)
-        self.scheduler = torch.optim.lr_scheduler.ExponentialLR(
-            self.optimizer, gamma=0.5)
-        self.mi_history = [0.]
         self.smooth_filter_size = smooth_filter_size
+
+        self.scheduler = None
+        self.mi_history = None
+        self.reset()
 
     def __repr__(self):
         return f"{MINE_Trainer.__name__}(model={self.mine_model}, " \
-               f"optimizer={self.optimizer})"
+               f"optimizer={self.optimizer}, " \
+               f"smooth_filter_size={self.smooth_filter_size})"
 
     def reset(self):
+        self.scheduler = torch.optim.lr_scheduler.ExponentialLR(
+            self.optimizer, gamma=0.5)
         self.mi_history = [0]
 
     def train_batch(self, data_batch, labels_batch):
@@ -120,7 +125,7 @@ class MINE_Trainer:
 
 class MutualInfoNeuralEstimation(MutualInfoPCA):
 
-    def __init__(self, estimate_size=None, pca_size=100, debug=False,
+    def __init__(self, data_loader: DataLoader, pca_size=100, debug=False,
                  estimate_epochs=5, noise_std=1e-3):
         """
         :param estimate_size: number of samples to estimate mutual information from
@@ -130,7 +135,7 @@ class MutualInfoNeuralEstimation(MutualInfoPCA):
         :param noise_std: how much noise to add to input and targets
         :param debug: plot MINE training curves?
         """
-        super().__init__(estimate_size=estimate_size, pca_size=pca_size,
+        super().__init__(data_loader=data_loader, pca_size=pca_size,
                          debug=debug)
         self.estimate_epochs = estimate_epochs
         self.noise_sampler = torch.distributions.normal.Normal(loc=0,
@@ -140,11 +145,7 @@ class MutualInfoNeuralEstimation(MutualInfoPCA):
         self.target_size = None
 
     def extra_repr(self):
-        return super().extra_repr() + f"; noise_variance={self.noise_sampler.variance}; " \
-                                      f"MINETrainer(filter_size={MINE_Trainer.filter_size}, " \
-                                      f"filter_rounds={MINE_Trainer.filter_rounds}, " \
-                                      f"optimizer.lr={MINE_Trainer.learning_rate}); " \
-                                      f"MINE(hidden_units={MINE_Net.hidden_units})"
+        return f"{super().extra_repr()}; noise_variance={self.noise_sampler.variance}; "
 
     def prepare_input_finished(self):
         self.input_size = self.quantized['input'].shape[1]
@@ -170,8 +171,6 @@ class MutualInfoNeuralEstimation(MutualInfoPCA):
         for mi_trainer in self.trainers[layer_name]:
             mi_trainer.reset()
         for epoch in range(self.estimate_epochs):
-            for mi_trainer in self.trainers[layer_name]:
-                mi_trainer.scheduler.step()
             permutations = torch.randperm(len(activations)).split(BATCH_SIZE)
             for batch_permutation in permutations:
                 activations_batch = activations[batch_permutation]
@@ -182,6 +181,8 @@ class MutualInfoNeuralEstimation(MutualInfoPCA):
                         labels_batch.shape)
                     trainer.train_batch(data_batch=activations_batch,
                                         labels_batch=labels_batch)
+            for mi_trainer in self.trainers[layer_name]:
+                mi_trainer.scheduler.step()
 
     def save_mutual_info(self):
         for layer_name, (trainer_x, trainer_y) in self.trainers.items():
@@ -198,7 +199,7 @@ class MutualInfoNeuralEstimation(MutualInfoPCA):
             info_y.append(trainer_y.mi_history_smoothed)
             legend.append(layer_name)
         for info_name, info in (('input X', info_x), ('target Y', info_y)):
-            info = np.transpose(info)
+            info = np.transpose(info).squeeze()
             title = f'MutualInfoNeuralEstimation {info_name}'
             viz.line(Y=info, X=np.arange(len(info)), win=title, opts=dict(
                 xlabel='Iteration',

@@ -23,6 +23,7 @@ from scipy.special import digamma
 from sklearn.neighbors import BallTree, KDTree
 
 from mighty.monitor.mutual_info._pca_preprocess import MutualInfoPCA
+from mighty.utils.data import DataLoader
 
 
 def entropy(x, k=3, base=2):
@@ -122,14 +123,14 @@ class MutualInfoNPEET(MutualInfoPCA):
     Kraskov mutual information estimation.
     """
 
-    def __init__(self, estimate_size=None, pca_size=100, debug=False):
+    def __init__(self, data_loader: DataLoader, pca_size=100, debug=False):
         """
         :param estimate_size: number of samples to estimate mutual information from
         :param pca_size: transform input data to this size;
                                pass None to use original raw input data (no transformation is applied)
         :param debug: plot MINE training curves?
         """
-        super().__init__(estimate_size=estimate_size, pca_size=pca_size, debug=debug)
+        super().__init__(data_loader=data_loader, pca_size=pca_size, debug=debug)
 
     def prepare_input_finished(self):
         self.quantized['input'] = (self.quantized['input'] -

@@ -7,7 +7,7 @@ from torch.optim.lr_scheduler import _LRScheduler, ReduceLROnPlateau
 from torch.optim.optimizer import Optimizer
 
 from mighty.loss import LossPenalty
-from mighty.monitor import MonitorAutoencoder
+from mighty.monitor.monitor import MonitorAutoencoder
 from mighty.monitor.accuracy import Accuracy, AccuracyAutoencoder
 from mighty.monitor.var_online import MeanOnline
 from mighty.utils.algebra import compute_psnr

@@ -1,15 +1,14 @@
 from typing import Union
 
 import torch.nn as nn
-import torch.utils.data
 from torch.optim.lr_scheduler import _LRScheduler, ReduceLROnPlateau
 from torch.optim.optimizer import Optimizer
 
-from mighty.monitor import MonitorEmbedding
 from mighty.monitor.accuracy import Accuracy, AccuracyEmbedding
-from mighty.monitor.var_online import MeanOnline, VarianceOnline, VarianceOnlineLabels
+from mighty.monitor.monitor import MonitorEmbedding
+from mighty.monitor.var_online import MeanOnline, VarianceOnlineLabels
 from mighty.utils.algebra import compute_sparsity
-from mighty.utils.data import DataLoader, get_normalize_inverse
+from mighty.utils.data import DataLoader
 from .gradient import TrainerGrad
 
 

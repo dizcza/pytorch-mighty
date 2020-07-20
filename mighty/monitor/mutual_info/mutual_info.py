@@ -1,17 +1,15 @@
 import math
-import os
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from functools import wraps
-from typing import Callable, List
+from typing import List
 
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.utils.data
 
-from mighty.monitor.batch_timer import ScheduleExp
 from mighty.utils.common import clone_cpu
+from mighty.utils.data import DataLoader
 from mighty.utils.hooks import get_layers_ordered
 
 
@@ -44,20 +42,17 @@ class MutualInfo(ABC):
     log2e = math.log2(math.e)
     ignore_layers = (nn.Conv2d,)  # poor estimate
 
-    def __init__(self, estimate_size=None, debug=False):
+    def __init__(self, data_loader: DataLoader, debug=False):
         """
-        :param estimate_size: number of samples to estimate mutual information from
         :param debug: plot bins distribution?
         """
-        if estimate_size is None:
-            estimate_size = float('inf')
-        self.estimate_size = estimate_size
+        self.data_loader = data_loader
         self.debug = debug
         self.activations = defaultdict(list)
         self.quantized = {}
         self.information = {}
         self.is_active = False
-        self.eval_loader = None
+        self.is_updating = False
         self.layer_to_name = {}
         self.accuracy_estimator = None
 
@@ -65,42 +60,33 @@ class MutualInfo(ABC):
         return f"{self.__class__.__name__}({self.extra_repr()})"
 
     def extra_repr(self):
-        return f"estimate_size={self.estimate_size}"
+        return ""
 
     def register(self, layer: nn.Module, name: str):
         if not isinstance(layer, self.ignore_layers):
             self.layer_to_name[layer] = name
 
     def force_update(self, model: nn.Module):
-        if self.eval_loader is None:
+        if not self.is_active:
             return
         self.start_listening()
         use_cuda = torch.cuda.is_available()
         with torch.no_grad():
-            for images, labels in self.eval_batches():
+            for images, labels in self.data_loader.eval():
                 if use_cuda:
                     images = images.cuda()
                 # the output of each layer is saved implicitly via hooks
                 model(images)
         self.finish_listening()
 
-    def eval_batches(self):
-        n_samples = 0
-        for images, labels in iter(self.eval_loader):
-            if n_samples > self.estimate_size:
-                break
-            n_samples += len(labels)
-            yield images, labels
-
     @abstractmethod
     def prepare_input(self):
         pass
 
-    def prepare(self, loader: torch.utils.data.DataLoader, model: nn.Module,
-                monitor_layers_count=1):
-        self.eval_loader = loader
+    def prepare(self, model: nn.Module, monitor_layers_count=1):
+        self.is_active = True  # turn on the feature
         self.prepare_input()
-        images_batch, _ = next(self.eval_batches())
+        images_batch, _ = self.data_loader.sample()
         image_sample = images_batch[0]
 
         layers_ordered = get_layers_ordered(model, image_sample)
@@ -118,20 +104,18 @@ class MutualInfo(ABC):
 
     def start_listening(self):
         self.activations.clear()
-        self.is_active = True
+        self.is_updating = True
 
     def finish_listening(self):
-        self.is_active = False
+        self.is_updating = False
         for hname, activations in self.activations.items():
             self.process_activations(layer_name=hname, activations=activations)
         self.save_mutual_info()
 
     def save_activations(self, module: nn.Module, tensor_input, tensor_output):
-        if not self.is_active:
+        if not self.is_updating:
             return
         layer_name = self.layer_to_name[module]
-        if sum(map(len, self.activations[layer_name])) > self.estimate_size:
-            return
         tensor_output_clone = clone_cpu(tensor_output)
         tensor_output_clone = tensor_output_clone.flatten(start_dim=1)
         self.activations[layer_name].append(tensor_output_clone)
@@ -150,7 +134,7 @@ class MutualInfo(ABC):
         self.plot_activations_hist(viz)
 
     def plot(self, viz):
-        assert not self.is_active, "Wait, not finished yet."
+        assert not self.is_updating, "Wait, not finished yet."
         if len(self.information) == 0:
             return
         if self.debug:

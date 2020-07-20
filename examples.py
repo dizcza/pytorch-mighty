@@ -66,15 +66,16 @@ def train_mask():
 def train_grad(n_epoch=10, dataset_cls=MNIST):
     model = MLP(784, 128, 10)
     optimizer, scheduler = get_optimizer_scheduler(model)
-    data_loader = DataLoader(dataset_cls, TransformDefault.mnist())
+    data_loader = DataLoader(dataset_cls, transform=TransformDefault.mnist())
     trainer = TrainerGrad(model,
                           criterion=nn.CrossEntropyLoss(),
                           data_loader=data_loader,
                           optimizer=optimizer,
+                          mutual_info=MutualInfoNeuralEstimation(data_loader),
                           scheduler=scheduler)
     # trainer.restore()  # uncomment to restore the saved state
-    trainer.monitor.advanced_monitoring(level=MonitorLevel.FULL)
-    trainer.train(n_epochs=n_epoch, mutual_info_layers=0)
+    trainer.monitor.advanced_monitoring(level=MonitorLevel.SIGNAL_TO_NOISE)
+    trainer.train(n_epochs=n_epoch, mutual_info_layers=1)
 
 
 def test(model, n_epoch=500, dataset_cls=MNIST):

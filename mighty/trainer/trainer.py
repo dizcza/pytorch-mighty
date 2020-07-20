@@ -16,7 +16,7 @@ from mighty.monitor.accuracy import AccuracyEmbedding, \
     AccuracyArgmax, Accuracy
 from mighty.monitor.batch_timer import timer
 from mighty.monitor.monitor import Monitor
-from mighty.monitor.mutual_info import MutualInfoStub
+from mighty.monitor.mutual_info import MutualInfoNeuralEstimation, MutualInfoStub
 from mighty.monitor.var_online import MeanOnline
 from mighty.trainer.mask import MaskTrainer
 from mighty.utils.common import find_named_layers, batch_to_cuda, \
@@ -56,7 +56,7 @@ class Trainer(ABC):
         self.data_loader = data_loader
         self.train_loader = data_loader.get(train=True)
         if mutual_info is None:
-            mutual_info = MutualInfoStub()
+            mutual_info = MutualInfoNeuralEstimation(data_loader)
         self.mutual_info = mutual_info
         self.checkpoint_dir = Path(checkpoint_dir)
         self.timer = timer
@@ -185,7 +185,8 @@ class Trainer(ABC):
         loss_online = MeanOnline()
 
         if train:
-            loader = self.data_loader.eval(verbose=True)
+            loader = self.data_loader.eval(
+                description="Full forward pass (eval)")
             self.mutual_info.start_listening()
         else:
             loader = self.data_loader.get(train)
@@ -308,8 +309,7 @@ class Trainer(ABC):
 
         if mutual_info_layers > 0 and not isinstance(self.mutual_info,
                                                      MutualInfoStub):
-            self.mutual_info.prepare(loader=self.data_loader.eval(),
-                                     model=self.model,
+            self.mutual_info.prepare(model=self.model,
                                      monitor_layers_count=mutual_info_layers)
 
         for epoch in range(self.timer.epoch, self.timer.epoch + n_epochs):

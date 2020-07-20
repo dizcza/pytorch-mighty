@@ -6,30 +6,28 @@ import sklearn.decomposition
 import torch
 import torch.utils.data
 import torch.utils.data
-from tqdm import tqdm
 
 from mighty.monitor.mutual_info.mutual_info import MutualInfo
 from mighty.utils.constants import BATCH_SIZE, PCA_DIR
+from mighty.utils.data import DataLoader
 
 
 class MutualInfoPCA(MutualInfo, ABC):
 
-    def __init__(self, estimate_size=None, pca_size=100, debug=False):
+    def __init__(self, data_loader: DataLoader, pca_size=100, debug=False):
         """
         :param estimate_size: number of samples to estimate mutual information from
         :param pca_size: transform input data to this size;
                                pass None to use original raw input data (no transformation is applied)
         :param debug: plot bins distribution?
         """
-        super().__init__(estimate_size=estimate_size, debug=debug)
+        super().__init__(data_loader=data_loader, debug=debug)
         self.pca_size = pca_size
 
     def prepare_input_raw(self):
         inputs = []
         targets = []
-        for images, labels in tqdm(self.eval_batches(),
-                                   total=len(self.eval_loader),
-                                   desc="MutualInfo: storing raw input data"):
+        for images, labels in self.data_loader.eval(description="MutualInfo: storing raw input data"):
             inputs.append(images.flatten(start_dim=1))
             targets.append(labels)
         self.quantized['input'] = torch.cat(inputs, dim=0)
@@ -40,13 +38,13 @@ class MutualInfoPCA(MutualInfo, ABC):
         pass
 
     def extra_repr(self):
-        return super().extra_repr() + f"; pca_size={self.pca_size}"
+        return f"pca_size={self.pca_size}"
 
     def prepare_input(self):
         if self.pca_size is None:
             self.prepare_input_raw()
             return
-        images_batch, _ = next(iter(self.eval_loader))
+        images_batch, _ = self.data_loader.sample()
         batch_size = images_batch.shape[0]
         assert batch_size >= self.pca_size, \
             f"Batch size {batch_size} has to be larger than PCA dim " \
@@ -56,10 +54,7 @@ class MutualInfoPCA(MutualInfo, ABC):
 
         inputs = []
         targets = []
-        for images, labels in tqdm(
-                self.eval_batches(),
-                total=len(self.eval_loader),
-                desc="MutualInfo: Applying PCA to input data. Stage 2"):
+        for images, labels in self.data_loader.eval(description="MutualInfo: Applying PCA to input data. Stage 2"):
             images = images.flatten(start_dim=1)
             images_transformed = pca.transform(images)
             images_transformed = torch.from_numpy(images_transformed).type(
@@ -73,14 +68,14 @@ class MutualInfoPCA(MutualInfo, ABC):
 
     def pca_full(self):
         # memory inefficient
-        dataset_name = self.eval_loader.dataset.__class__.__name__
+        dataset_name = self.data_loader.dataset_cls.__name__
         pca_path = PCA_DIR.joinpath(dataset_name, f"dim-{self.pca_size}.pkl")
         if not pca_path.exists():
             pca_path.parent.mkdir(parents=True, exist_ok=True)
             pca = sklearn.decomposition.PCA(n_components=self.pca_size,
                                             copy=False)
             images = np.vstack([im_batch.flatten(start_dim=1)
-                                for im_batch, _ in iter(self.eval_loader)])
+                                for im_batch, _ in self.data_loader.eval()])
             pca.fit(images)
             with open(pca_path, 'wb') as f:
                 pickle.dump(pca, f)
@@ -91,10 +86,7 @@ class MutualInfoPCA(MutualInfo, ABC):
     def pca_incremental(self):
         pca = sklearn.decomposition.IncrementalPCA(
             n_components=self.pca_size, copy=False, batch_size=BATCH_SIZE)
-        for images, _ in tqdm(
-                self.eval_batches(),
-                total=len(self.eval_loader),
-                desc="MutualInfo: Applying PCA to input data. Stage 1"):
+        for images, _ in self.data_loader.eval(description="MutualInfo: Applying PCA to input data. Stage 1"):
             if images.shape[0] < self.pca_size:
                 # drop the last batch if it's smaller
                 continue

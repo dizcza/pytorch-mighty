@@ -17,8 +17,8 @@ class DataLoader:
         self.loader_cls = loader_cls
         self.transform = transform
         self.batch_size = batch_size
-        if eval_size is None:
-            eval_size = float('inf')
+        dataset = self.dataset_cls(DATA_DIR, train=True, download=True)
+        eval_size = min(eval_size, len(dataset))
         self.eval_size = eval_size
         self.num_workers = num_workers
         self.normalize_inverse = get_normalize_inverse(self.transform)
@@ -40,7 +40,7 @@ class DataLoader:
                                  num_workers=self.num_workers)
         return loader
 
-    def eval(self, verbose=False) -> torch.utils.data.DataLoader:
+    def eval(self, description=None) -> torch.utils.data.DataLoader:
         dataset = self.dataset_cls(DATA_DIR, train=True, download=True,
                                    transform=self.transform)
         eval_loader = self.loader_cls(dataset,
@@ -48,13 +48,12 @@ class DataLoader:
                                       shuffle=False,
                                       num_workers=self.num_workers)
 
-        n_samples_take = min(self.eval_size, len(dataset))
-        n_batches = math.ceil(n_samples_take / self.batch_size)
+        n_batches = math.ceil(self.eval_size / self.batch_size)
         for batch_id, batch in tqdm(
                 enumerate(iter(eval_loader)),
-                desc="Full forward pass (eval)",
+                desc=description,
                 total=n_batches,
-                disable=not verbose,
+                disable=not description,
                 leave=False):
             if batch_id >= n_batches:
                 break

@@ -6,10 +6,11 @@ import torch.utils.data
 import torch.utils.data
 from sklearn import cluster
 from sklearn.metrics import mutual_info_score
-from tqdm import tqdm
 
-from mighty.monitor.mutual_info.mutual_info import MutualInfo, AccuracyFromMutualInfo
+from mighty.monitor.mutual_info.mutual_info import MutualInfo, \
+    AccuracyFromMutualInfo
 from mighty.utils.constants import BATCH_SIZE
+from mighty.utils.data import DataLoader
 
 
 class MutualInfoKMeans(MutualInfo):
@@ -18,7 +19,7 @@ class MutualInfoKMeans(MutualInfo):
     KMeans is used to cluster the data.
     """
 
-    def __init__(self, estimate_size=None, n_bins=20, debug=False):
+    def __init__(self, data_loader: DataLoader, n_bins=20, debug=False):
         """
         :param estimate_size: number of samples to estimate mutual information from
         :param n_bins: how many bins to use? This value should be no less than the number of classes.
@@ -26,19 +27,18 @@ class MutualInfoKMeans(MutualInfo):
                        Setting n_bins to None means it'll be calculated as the number of distinct labels/targets.
         :param debug: plot bins distribution?
         """
-        super().__init__(estimate_size=estimate_size, debug=debug)
+        super().__init__(data_loader=data_loader, debug=debug)
         self.n_bins = n_bins
 
     def extra_repr(self):
-        return f"{super().extra_repr()}, n_bins={self.n_bins}"
+        return f"n_bins={self.n_bins}"
 
     def prepare_input(self):
         targets = []
         classifier = cluster.MiniBatchKMeans(n_clusters=self.n_bins,
                                              batch_size=BATCH_SIZE,
                                              compute_labels=False)
-        for images, labels in tqdm(self.eval_batches(), total=len(self.eval_loader),
-                                   desc="MutualInfo: quantizing input data. Stage 1"):
+        for images, labels in self.data_loader.eval(description="MutualInfo: quantizing input data. Stage 1"):
             images = images.flatten(start_dim=1)
             classifier.partial_fit(images, labels)
             targets.append(labels)
@@ -46,8 +46,7 @@ class MutualInfoKMeans(MutualInfo):
         self.quantized['target'] = targets.numpy()
 
         centroids_predicted = []
-        for images, _ in tqdm(self.eval_batches(), total=len(self.eval_loader),
-                              desc="MutualInfo: quantizing input data. Stage 2"):
+        for images, _ in self.data_loader.eval(description="MutualInfo: quantizing input data. Stage 2"):
             images = images.flatten(start_dim=1)
             centroids_predicted.append(classifier.predict(images))
         self.quantized['input'] = np.hstack(centroids_predicted)
