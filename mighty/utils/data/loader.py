@@ -17,6 +17,8 @@ class DataLoader:
         self.loader_cls = loader_cls
         self.transform = transform
         self.batch_size = batch_size
+        if eval_size is None:
+            eval_size = float('inf')
         dataset = self.dataset_cls(DATA_DIR, train=True, download=True)
         eval_size = min(eval_size, len(dataset))
         self.eval_size = eval_size
