@@ -7,3 +7,4 @@ ignored/
 *.lprof
 *.egg-info/
 dist/
+build/

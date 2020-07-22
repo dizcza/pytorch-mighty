@@ -43,3 +43,5 @@ Requires Python 3.6+
 
 * [MCMC_BinaryNet](https://github.com/dizcza/MCMC_BinaryNet) - Markov Chain Monte Carlo binary networks optimization.
 * [EmbedderSDR](https://github.com/dizcza/EmbedderSDR) - encode images into binary Sparse Distributed Representation ([SDR](https://discourse.numenta.org/t/sparse-distributed-representations/2150)).
+* [sparse-representation](https://github.com/dizcza/sparse-representation) - Basis Pursuit solvers for the P0- and P1-problems, which encode the data into sparse vectors of high dimensionality.
+
