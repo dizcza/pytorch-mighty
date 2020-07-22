@@ -1,7 +1,8 @@
 import os
+import sys
 import time
 from collections import defaultdict
-from typing import Union, List, Iterable
+from typing import Union, List
 
 import numpy as np
 import visdom
@@ -14,9 +15,16 @@ class VisdomMighty(visdom.Visdom):
         port = int(os.environ.get('VISDOM_PORT', 8097))
         server = os.environ.get('VISDOM_SERVER', 'http://localhost')
         env = env.replace('_', '-')  # visdom things
-        super().__init__(env=env, server=server, port=port,
-                         username=os.environ.get('VISDOM_USER', None),
-                         password=os.environ.get('VISDOM_PASSWORD', None))
+        try:
+            super().__init__(env=env, server=server, port=port,
+                             username=os.environ.get('VISDOM_USER', None),
+                             password=os.environ.get('VISDOM_PASSWORD', None),
+                             raise_exceptions=True)
+        except ConnectionError as error:
+            tb = sys.exc_info()[2]
+            raise ConnectionError("Start Visdom server with "
+                                  "'python -m visdom.server' command."
+                                  ).with_traceback(tb)
         print(f"Monitor is opened at {self.server}:{self.port}. "
               f"Choose environment '{self.env}'.")
         self.timer = timer
