@@ -16,6 +16,21 @@ def compute_distance(input1, input2, metric, dim=1):
 
 
 def exponential_moving_average(array, window: int):
+    """
+    Exponential moving average in a sliding window.
+
+    Parameters
+    ----------
+    array : (N,) np.ndarray
+        Input array-like.
+    window : int
+        Sliding window width.
+
+    Returns
+    -------
+    out : (N,) np.ndarrat
+        Filtered array of the same length.
+    """
     array = np.asarray(array)
     alpha = 2 / (window + 1.0)
     alpha_rev = 1 - alpha
@@ -33,8 +48,10 @@ def exponential_moving_average(array, window: int):
     return out
 
 
-def onehot(y_labels):
-    n_classes = len(y_labels.unique(sorted=False))
+def to_onehot(y_labels, n_classes=None):
+    y_labels = torch.as_tensor(y_labels, dtype=torch.long)
+    if n_classes is None:
+        n_classes = len(y_labels.unique(sorted=False))
     y_onehot = torch.zeros(y_labels.shape[0], n_classes, dtype=torch.int64)
     y_onehot[torch.arange(y_onehot.shape[0]), y_labels] = 1
     return y_onehot

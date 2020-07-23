@@ -73,7 +73,7 @@ class MutualInfoKMeans(MutualInfo):
 
     @staticmethod
     def compute_mutual_info(x, y) -> float:
-        return mutual_info_score(x, y) * MutualInfo.log2e
+        return MutualInfo.to_bits(mutual_info_score(x, y))
 
     def quantize(self, activations: torch.FloatTensor) -> np.ndarray:
         model = cluster.MiniBatchKMeans(n_clusters=self.n_bins, batch_size=BATCH_SIZE)

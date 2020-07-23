@@ -14,7 +14,7 @@ import torch.utils.data
 
 from mighty.models import MLP
 from mighty.monitor.mutual_info._pca_preprocess import MutualInfoPCA
-from mighty.utils.algebra import onehot, exponential_moving_average
+from mighty.utils.algebra import to_onehot, exponential_moving_average
 from mighty.utils.constants import BATCH_SIZE
 from mighty.utils.data import DataLoader
 
@@ -23,28 +23,39 @@ class MINE_Net(nn.Module):
 
     def __init__(self, x_size: int, y_size: int, hidden_units=(100, 50)):
         """
-        :param x_size: hidden layer shape
-        :param y_size: input/target data shape
-        :param hidden_units: number of hidden units in MINE net
+        A network to estimate the mutual information between X and Y, I(X; Y).
+
+        Parameters
+        ----------
+        x_size, y_size : int
+            Number of neurons in X and Y.
+        hidden_units : int or tuple of int
+            Hidden layer size(s).
         """
         super().__init__()
         if isinstance(hidden_units, int):
             hidden_units = [hidden_units]
         self.fc_x = nn.Linear(x_size, hidden_units[0], bias=False)
         self.fc_y = nn.Linear(y_size, hidden_units[0], bias=False)
-        self.input_bias = nn.Parameter(torch.zeros(hidden_units[0]))
-        # the output is a scalar - the mutual info
-        self.mlp = MLP(*hidden_units, 1)
+        self.xy_bias = nn.Parameter(torch.zeros(hidden_units[0]))
+        # the output mutual info is a scalar; hence, the last dimension is 1
+        self.fc_output = MLP(*hidden_units, 1)
 
     def forward(self, x, y):
         """
-        :param x: some hidden layer batch activations of shape (batch_size, embedding_size)
-        :param y: either input or target data samples of shape (batch_size, input_dimensions or 1)
-        :return: mutual information I(x, y) lower bound
+        Parameters
+        ----------
+        x, y : torch.Tensor
+            Data batches.
+
+        Returns
+        -------
+        mi : torch.Tensor
+            Kullback-Leibler lower-bound estimation of I(X; Y).
         """
-        mi = F.relu(self.fc_x(x) + self.fc_y(y) + self.input_bias,
-                    inplace=True)
-        mi = self.mlp(mi)
+        hidden = F.relu(self.fc_x(x) + self.fc_y(y) + self.xy_bias,
+                        inplace=True)
+        mi = self.fc_output(hidden)
         return mi
 
 
@@ -56,6 +67,9 @@ class MINE_Trainer:
         A network to estimate mutual information.
     learning_rate : float
         Optimizer learning rate.
+    smooth_filter_size : int
+        Smoothing filter size. The larger the filter, the smoother but also
+        more biased towards lower values of the resulting estimate.
     """
 
     log2_e = np.log2(np.e)
@@ -63,7 +77,7 @@ class MINE_Trainer:
     def __init__(self, mine_model: nn.Module, learning_rate=1e-3,
                  smooth_filter_size=30):
         if torch.cuda.is_available():
-            mine_model.cuda()
+            mine_model = mine_model.cuda()
         self.mine_model = mine_model
         self.optimizer = torch.optim.Adam(self.mine_model.parameters(),
                                           lr=learning_rate)
@@ -83,24 +97,24 @@ class MINE_Trainer:
             self.optimizer, gamma=0.5)
         self.mi_history = [0]
 
-    def train_batch(self, data_batch, labels_batch):
+    def train_batch(self, x_batch, y_batch):
         """
         Performs a single step to refine I(X; Y).
 
         Parameters
         ----------
-        data_batch, labels_batch : torch.Tensor
+        x_batch, y_batch : torch.Tensor
             A batch of multidimensional X and Y of size (B, N) to
             estimate mutual information from. N could be 1 or more.
         """
         if torch.cuda.is_available():
-            data_batch = data_batch.cuda()
-            labels_batch = labels_batch.cuda()
+            x_batch = x_batch.cuda()
+            y_batch = y_batch.cuda()
         self.optimizer.zero_grad()
-        pred_joint = self.mine_model(data_batch, labels_batch)
-        labels_batch = labels_batch[
-            torch.randperm(labels_batch.shape[0], device=labels_batch.device)]
-        pred_marginal = self.mine_model(data_batch, labels_batch)
+        pred_joint = self.mine_model(x_batch, y_batch)
+        y_batch = y_batch[
+            torch.randperm(y_batch.shape[0], device=y_batch.device)]
+        pred_marginal = self.mine_model(x_batch, y_batch)
         mi_lower_bound = pred_joint.mean() - pred_marginal.exp().mean().log()
         mi_bits = mi_lower_bound.item() * self.log2_e  # convert nats to bits
         self.mi_history.append(mi_bits)
@@ -108,8 +122,7 @@ class MINE_Trainer:
         loss.backward()
         self.optimizer.step()
 
-    @property
-    def mi_history_smoothed(self):
+    def _smooth(self):
         return exponential_moving_average(self.mi_history,
                                           window=self.smooth_filter_size)
 
@@ -120,7 +133,7 @@ class MINE_Trainer:
         float
             Estimated mutual information lower bound.
         """
-        return self.mi_history_smoothed.max()
+        return self._smooth().max()
 
 
 class MutualInfoNeuralEstimation(MutualInfoPCA):
@@ -151,7 +164,7 @@ class MutualInfoNeuralEstimation(MutualInfoPCA):
         self.input_size = self.quantized['input'].shape[1]
         self.target_size = len(self.quantized['target'].unique())
         # one-hot encoded labels are better fit than argmax
-        self.quantized['target'] = onehot(self.quantized['target']).type(
+        self.quantized['target'] = to_onehot(self.quantized['target']).type(
             torch.float32)
 
     def process_activations(self, layer_name: str,
@@ -179,8 +192,8 @@ class MutualInfoNeuralEstimation(MutualInfoPCA):
                     labels_batch = self.quantized[data_type][batch_permutation]
                     labels_batch = labels_batch + self.noise_sampler.sample(
                         labels_batch.shape)
-                    trainer.train_batch(data_batch=activations_batch,
-                                        labels_batch=labels_batch)
+                    trainer.train_batch(x_batch=activations_batch,
+                                        y_batch=labels_batch)
             for mi_trainer in self.trainers[layer_name]:
                 mi_trainer.scheduler.step()
 
@@ -195,8 +208,8 @@ class MutualInfoNeuralEstimation(MutualInfoPCA):
         info_x = []
         info_y = []
         for layer_name, (trainer_x, trainer_y) in self.trainers.items():
-            info_x.append(trainer_x.mi_history_smoothed)
-            info_y.append(trainer_y.mi_history_smoothed)
+            info_x.append(trainer_x._smooth())
+            info_y.append(trainer_y._smooth())
             legend.append(layer_name)
         for info_name, info in (('input X', info_x), ('target Y', info_y)):
             info = np.transpose(info).squeeze()

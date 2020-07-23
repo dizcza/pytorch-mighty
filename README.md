@@ -6,19 +6,64 @@ The Mighty Monitor Trainer for your pytorch models. Powered by [Visdom](https://
 
 
 
-### Quick start
+### Installation
 
 Requires Python 3.6+
 
-1. Install [pytorch](https://pytorch.org/)
+1. Install [PyTorch](https://pytorch.org/):
+   * CPU backend: `conda install pytorch torchvision cpuonly -c pytorch`
+   * GPU backend: `conda install pytorch torchvision cudatoolkit=10.2 -c pytorch`
 2. `$ pip install pytorch-mighty`
-3. `$ python -m visdom.server -port 8097` - start visdom server on port 8097
-4. In a separate terminal, run `python examples.py`
-5. Navigate to http://localhost:8097 to see the training progress.
-6. Check-out more examples on [http://85.217.171.57:8097](http://85.217.171.57:8097/). Give your browser a few minutes to parse the json data.
 
 
-### Articles, implemented in the package
+### Quick start
+
+Before running any script, start Visdom server:
+
+```
+$ python -m visdom.server -port 8097
+```
+
+Then run `python examples.py` or use the code below:
+
+```python
+import torch
+import torch.nn as nn
+from torchvision import transforms
+from torchvision.datasets import MNIST
+
+from mighty.models import MLP
+from mighty.monitor.monitor import MonitorLevel
+from mighty.trainer import TrainerGrad
+from mighty.utils.data import DataLoader
+
+model = MLP(784, 128, 10)
+
+optimizer = torch.optim.Adam(
+    filter(lambda param: param.requires_grad, model.parameters()), lr=1e-3,
+    weight_decay=1e-5)
+scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer)
+
+transform = transforms.Compose([
+    transforms.ToTensor(),
+    transforms.Normalize(mean=(0.1307,), std=(0.3081,))
+])
+data_loader = DataLoader(MNIST, transform=transforms)
+
+trainer = TrainerGrad(model,
+                      criterion=nn.CrossEntropyLoss(),
+                      data_loader=data_loader,
+                      optimizer=optimizer,
+                      scheduler=scheduler)
+# trainer.restore()  # uncomment to restore the saved state
+trainer.monitor.advanced_monitoring(level=MonitorLevel.SIGNAL_TO_NOISE)
+trainer.train(n_epochs=10, mutual_info_layers=0)
+```
+
+Finally, navigate to http://localhost:8097 to see the training progress.
+
+
+### Articles, implemented or reused in the package
 
 1. Fong, R. C., & Vedaldi, A. (2017). Interpretable explanations of black boxes by meaningful perturbation.
     * Paper: https://arxiv.org/abs/1704.03296
@@ -38,6 +83,9 @@ Requires Python 3.6+
     * Used in [`monitor/mutual_info/gcmi.py`](mighty/monitor/mutual_info/gcmi.py)
     * Original source code: https://github.com/robince/gcmi
 
+5. [IDTxl](https://github.com/pwollstadt/IDTxl) package to estimate mutual information.
+    * Used in [`monitor/mutual_info/idtxl.py`](mighty/monitor/mutual_info/idtxl.py)
+
 
 ### Projects that use pytorch-mighty
 
@@ -45,3 +93,4 @@ Requires Python 3.6+
 * [EmbedderSDR](https://github.com/dizcza/EmbedderSDR) - encode images into binary Sparse Distributed Representation ([SDR](https://discourse.numenta.org/t/sparse-distributed-representations/2150)).
 * [sparse-representation](https://github.com/dizcza/sparse-representation) - Basis Pursuit solvers for the P0- and P1-problems, which encode the data into sparse vectors of high dimensionality.
 
+Check-out more examples on http://85.217.171.57:8097. Give your browser a few minutes to parse the json data.
