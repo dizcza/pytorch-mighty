@@ -46,7 +46,7 @@ def mi(x, y, z=None, k=3, base=2):
         x, y should be a list of vectors, e.g. x = [[1.3], [3.7], [5.1], [2.4]]
         if x is a one-dimensional scalar and we have four samples
     """
-    assert len(x) == len(y), "Arrays should have same length"
+    assert len(x) == len(y), "Arrays should have the same length"
     assert k <= len(x) - 1, "Set k smaller than num. samples - 1"
     x, y = np.asarray(x), np.asarray(y)
     x = add_noise(x)
@@ -55,6 +55,7 @@ def mi(x, y, z=None, k=3, base=2):
     if z is not None:
         points.append(z)
     points = np.hstack(points)
+    assert points.dtype == np.float32
     # Find nearest neighbors in joint space, p=inf means max-norm
     tree = build_tree(points)
     dvec = query_neighbors(tree, points, k)
@@ -94,7 +95,7 @@ def micd(x, y, k=3, base=2, warning=True):
 
 def add_noise(x, intens=1e-10):
     # small noise to break degeneracy, see doc.
-    return x + intens * np.random.random_sample(x.shape)
+    return x + intens * np.random.random_sample(x.shape).astype(np.float32)
 
 
 def query_neighbors(tree, x, k):
