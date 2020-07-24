@@ -89,8 +89,9 @@ Finally, navigate to http://localhost:8097 to see the training progress.
 
 ### Projects that use pytorch-mighty
 
-* [MCMC_BinaryNet](https://github.com/dizcza/MCMC_BinaryNet) - Markov Chain Monte Carlo binary networks optimization.
+* [MCMC\_BinaryNet](https://github.com/dizcza/MCMC_BinaryNet) - Markov Chain Monte Carlo binary networks optimization.
 * [EmbedderSDR](https://github.com/dizcza/EmbedderSDR) - encode images into binary Sparse Distributed Representation ([SDR](https://discourse.numenta.org/t/sparse-distributed-representations/2150)).
 * [sparse-representation](https://github.com/dizcza/sparse-representation) - Basis Pursuit solvers for the P0- and P1-problems, which encode the data into sparse vectors of high dimensionality.
+* [entropy-estimators](https://github.com/dizcza/entropy-estimators) - estimate Entropy and Mutual Information between multivariate random variables.
 
 Check-out more examples on http://85.217.171.57:8097. Give your browser a few minutes to parse the json data.

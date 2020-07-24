@@ -109,11 +109,11 @@ class Monitor:
         for param_record in self.param_records.values():
             param_record.monitor_level = level
 
-    def open(self, env_name: str):
+    def open(self, env_name: str, offline=False):
         """
         :param env_name: Visdom environment name
         """
-        self.viz = VisdomMighty(env=env_name)
+        self.viz = VisdomMighty(env=env_name, offline=offline)
 
     def log_model(self, model: nn.Module, space='-'):
         lines = []

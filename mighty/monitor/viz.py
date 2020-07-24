@@ -8,17 +8,24 @@ import numpy as np
 import visdom
 
 from mighty.monitor.batch_timer import timer
+from mighty.utils.constants import VISDOM_LOGS_DIR
 
 
 class VisdomMighty(visdom.Visdom):
-    def __init__(self, env: str = "main"):
+    def __init__(self, env: str = "main", offline=False):
         port = int(os.environ.get('VISDOM_PORT', 8097))
         server = os.environ.get('VISDOM_SERVER', 'http://localhost')
         env = env.replace('_', '-')  # visdom things
+        log_to_filename = None
+        if offline:
+            VISDOM_LOGS_DIR.mkdir(exist_ok=True)
+            log_to_filename = VISDOM_LOGS_DIR / f"{env}.log"
         try:
             super().__init__(env=env, server=server, port=port,
                              username=os.environ.get('VISDOM_USER', None),
                              password=os.environ.get('VISDOM_PASSWORD', None),
+                             log_to_filename=log_to_filename,
+                             offline=offline,
                              raise_exceptions=True)
         except ConnectionError as error:
             tb = sys.exc_info()[2]

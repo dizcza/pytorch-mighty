@@ -280,11 +280,11 @@ class Trainer(ABC):
         self.monitor.update_loss(loss=loss_online.get_mean(),
                                  mode='batch')
 
-    def open_monitor(self):
+    def open_monitor(self, offline=False):
         # visdom can be already initialized via trainer.restore()
         if self.monitor.viz is None:
             # new environment
-            self.monitor.open(env_name=self.env_name)
+            self.monitor.open(env_name=self.env_name, offline=offline)
             self.monitor.clear()
 
     def train(self, n_epochs=10, epoch_update_step=1, mutual_info_layers=1,
