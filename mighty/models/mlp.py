@@ -21,9 +21,9 @@ class MLP(nn.Module):
             classifier.append(nn.ReLU(inplace=True))
         classifier.append(nn.Linear(in_features=fc_sizes[-1],
                                     out_features=n_classes))
-        self.classifier = nn.Sequential(*classifier)
+        self.mlp = nn.Sequential(*classifier)
 
     def forward(self, x):
         x = x.flatten(start_dim=1)
-        x = self.classifier(x)
+        x = self.mlp(x)
         return x
