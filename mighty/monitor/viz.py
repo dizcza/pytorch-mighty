@@ -32,8 +32,11 @@ class VisdomMighty(visdom.Visdom):
             raise ConnectionError("Start Visdom server with "
                                   "'python -m visdom.server' command."
                                   ).with_traceback(tb)
-        print(f"Monitor is opened at {self.server}:{self.port}. "
-              f"Choose environment '{self.env}'.")
+        if offline:
+            print(f"Visdom logs are stored in {log_to_filename}")
+        else:
+            print(f"Monitor is opened at {self.server}:{self.port}. "
+                  f"Choose environment '{self.env}'.")
         self.timer = timer
         self.legends = defaultdict(list)
         self.with_markers = False

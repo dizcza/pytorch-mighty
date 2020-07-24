@@ -1,5 +1,4 @@
 from abc import ABC
-from collections import defaultdict
 
 import torch
 import torch.utils.data
@@ -9,14 +8,17 @@ from mighty.utils.algebra import compute_distance
 
 
 def calc_accuracy(labels_true, labels_predicted) -> float:
-    accuracy = (labels_true == labels_predicted).type(torch.float32).mean()
+    accuracy = (labels_true == labels_predicted).float().mean()
     return accuracy.item()
 
 
 class Accuracy(ABC):
 
+    def __init__(self):
+        self.true_labels_cached = []
+
     def reset(self):
-        pass
+        self.true_labels_cached.clear()
 
     def partial_fit(self, outputs_batch, labels_batch):
         """
@@ -25,7 +27,7 @@ class Accuracy(ABC):
         :param outputs_train: model output on the train set
         :param labels_train: train set labels
         """
-        pass
+        self.true_labels_cached.append(labels_batch.cpu())
 
     def predict(self, outputs_test):
         """
@@ -51,12 +53,26 @@ class Accuracy(ABC):
 
 class AccuracyArgmax(Accuracy):
 
+    def __init__(self):
+        super().__init__()
+        self.predicted_labels_cached = []
+
+    def reset(self):
+        super().reset()
+        self.predicted_labels_cached.clear()
+
     def predict(self, outputs_test):
         labels_predicted = outputs_test.argmax(dim=-1)
         return labels_predicted
 
     def predict_proba(self, outputs_test):
         return outputs_test.softmax(dim=1)
+
+    def partial_fit(self, outputs_batch, labels_batch):
+        super().partial_fit(outputs_batch=outputs_batch,
+                            labels_batch=labels_batch)
+        labels_pred = self.predict(outputs_batch)
+        self.predicted_labels_cached.append(labels_pred.cpu())
 
 
 class AccuracyEmbedding(Accuracy):
@@ -67,6 +83,7 @@ class AccuracyEmbedding(Accuracy):
     """
 
     def __init__(self, metric='cosine', cache=False):
+        super().__init__()
         self.metric = metric
         self.cache = cache
         self.input_cached = []
@@ -82,6 +99,7 @@ class AccuracyEmbedding(Accuracy):
         return len(self.centroids_dict) > 0
 
     def reset(self):
+        super().reset()
         self.centroids_dict.reset()
         self.input_cached.clear()
 
@@ -108,6 +126,8 @@ class AccuracyEmbedding(Accuracy):
         return distances
 
     def partial_fit(self, outputs_batch, labels_batch):
+        super().partial_fit(outputs_batch=outputs_batch,
+                            labels_batch=labels_batch)
         outputs_batch = outputs_batch.detach().cpu()
         self.centroids_dict.update(outputs_batch, labels_batch)
         if self.cache:

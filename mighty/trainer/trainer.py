@@ -13,7 +13,7 @@ from tqdm import tqdm
 
 from mighty.loss import PairLoss
 from mighty.monitor.accuracy import AccuracyEmbedding, \
-    AccuracyArgmax, Accuracy
+    AccuracyArgmax, Accuracy, calc_accuracy
 from mighty.monitor.batch_timer import timer
 from mighty.monitor.monitor import Monitor
 from mighty.monitor.mutual_info import MutualInfoNeuralEstimation, MutualInfoStub
@@ -112,7 +112,7 @@ class Trainer(ABC):
         return monitor
 
     def _init_online_measures(self) -> Dict[str, MeanOnline]:
-        return dict()
+        return dict(accuracy=MeanOnline())
 
     @abstractmethod
     def train_batch(self, batch):
@@ -179,6 +179,9 @@ class Trainer(ABC):
         input = input_from_batch(batch)
         return self.model(input)
 
+    def is_unsupervised(self):
+        return not self.data_loader.has_labels
+
     def full_forward_pass(self, train=True):
         mode_saved = self.model.training
         self.model.train(False)
@@ -199,11 +202,13 @@ class Trainer(ABC):
                 self._on_forward_pass_batch(batch, output, train)
                 loss_online.update(loss)
 
-        loss = loss_online.get_mean()
-        self.monitor.update_loss(loss, mode='train' if train else 'test')
-
         self.mutual_info.finish_listening()
         self.model.train(mode_saved)
+
+        mode = 'train' if train else 'test'
+        loss = loss_online.get_mean()
+        self.monitor.update_loss(loss, mode=mode)
+        self._update_accuracy(mode=mode)
 
         return loss
 
@@ -212,6 +217,29 @@ class Trainer(ABC):
         for online_measure in self.online.values():
             online_measure.reset()
         self.accuracy_measure.reset()
+
+    def _update_accuracy(self, mode='train'):
+        if self.is_unsupervised():
+            return
+        labels_true = torch.cat(self.accuracy_measure.true_labels_cached)
+        if isinstance(self.accuracy_measure, AccuracyArgmax):
+            labels_pred = torch.cat(
+                self.accuracy_measure.predicted_labels_cached)
+        elif getattr(self.accuracy_measure, 'cache', False):
+            labels_pred = self.accuracy_measure.predict_cached()
+        else:
+            labels_pred = []
+            with torch.no_grad():
+                for batch in self.data_loader.eval():
+                    batch = batch_to_cuda(batch)
+                    output = self._forward(batch)
+                    labels_pred.append(self.accuracy_measure.predict(output))
+            labels_pred = torch.cat(labels_pred, dim=0)
+
+        self.monitor.update_accuracy_epoch(labels_pred, labels_true,
+                                           mode=mode)
+        accuracy = calc_accuracy(labels_true, labels_pred)
+        self.update_best_score(accuracy, score_type='accuracy')
 
     def train_mask(self):
         """

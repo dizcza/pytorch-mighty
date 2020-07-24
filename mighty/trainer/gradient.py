@@ -33,10 +33,6 @@ class TrainerGrad(Trainer):
         super().__init__(model, criterion=criterion, data_loader=data_loader, **kwargs)
         self.optimizer = optimizer
         self.scheduler = scheduler
-        self._labels = {
-            "predicted": [],
-            "true": []
-        }
 
     def monitor_functions(self):
         super().monitor_functions()
@@ -68,57 +64,21 @@ class TrainerGrad(Trainer):
         return loss
 
     def _on_forward_pass_batch(self, batch, output, train):
-        if not train:
-            super()._on_forward_pass_batch(batch, output, train)
-            return
-        if not self.data_loader.has_labels:
+        if self.is_unsupervised():
             # unsupervised, no labels
             return
         _, labels = batch
-        self._labels['true'].append(labels.cpu())
-        if isinstance(self.accuracy_measure, AccuracyArgmax):
-            # softmax
-            predicted = self.accuracy_measure.predict(output)
-            self._labels['predicted'].append(predicted)
         self.accuracy_measure.partial_fit(output, labels)
 
     def _get_loss(self, batch, output):
         input, labels = batch
         return self.criterion(output, labels)
 
-    def update_accuracy(self):
-        if len(self._labels['true']) == 0:
-            # unsupervised, no labels
-            return
-        labels_full = torch.cat(self._labels['true'], dim=0)
-
-        if len(self._labels['predicted']) > 0:
-            # softmax
-            labels_pred = torch.cat(self._labels['predicted'], dim=0)
-        elif getattr(self.accuracy_measure, 'cache', False):
-            labels_pred = self.accuracy_measure.predict_cached()
-        else:
-            labels_pred = []
-            with torch.no_grad():
-                for batch in self.data_loader.eval():
-                    batch = batch_to_cuda(batch)
-                    output = self._forward(batch)
-                    labels_pred.append(self.accuracy_measure.predict(output))
-            labels_pred = torch.cat(labels_pred, dim=0)
-
-        self.monitor.update_accuracy_epoch(labels_pred, labels_full,
-                                           mode='train')
-        accuracy = calc_accuracy(labels_full, labels_pred)
-        self.update_best_score(accuracy, score_type='accuracy')
-
     def _epoch_finished(self, loss):
-        self.update_accuracy()
         if isinstance(self.scheduler, ReduceLROnPlateau):
             self.scheduler.step(metrics=loss)
         elif isinstance(self.scheduler, _LRScheduler):
             self.scheduler.step()
-        self._labels['true'].clear()
-        self._labels['predicted'].clear()
         super()._epoch_finished(loss)
 
     def state_dict(self):
