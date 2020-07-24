@@ -75,7 +75,7 @@ class TrainerGrad(Trainer):
             # unsupervised, no labels
             return
         _, labels = batch
-        self._labels['true'].append(labels)
+        self._labels['true'].append(labels.cpu())
         if isinstance(self.accuracy_measure, AccuracyArgmax):
             # softmax
             predicted = self.accuracy_measure.predict(output)
