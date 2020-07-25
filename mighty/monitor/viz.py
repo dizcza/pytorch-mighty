@@ -15,6 +15,7 @@ class VisdomMighty(visdom.Visdom):
     def __init__(self, env: str = "main", offline=False):
         port = int(os.environ.get('VISDOM_PORT', 8097))
         server = os.environ.get('VISDOM_SERVER', 'http://localhost')
+        base_url = os.environ.get('VISDOM_BASE_URL', '/')
         env = env.replace('_', '-')  # visdom things
         log_to_filename = None
         if offline:
@@ -26,6 +27,7 @@ class VisdomMighty(visdom.Visdom):
                              password=os.environ.get('VISDOM_PASSWORD', None),
                              log_to_filename=log_to_filename,
                              offline=offline,
+                             base_url=base_url,
                              raise_exceptions=True)
         except ConnectionError as error:
             tb = sys.exc_info()[2]
@@ -39,7 +41,8 @@ class VisdomMighty(visdom.Visdom):
         if offline:
             print(f"Visdom logs are saved in {log_to_filename}")
         else:
-            print(f"Monitor is opened at {self.server}:{self.port}. "
+            url = f"{self.server}:{self.port}{self.base_url}"
+            print(f"Monitor is opened at {url}. "
                   f"Choose environment '{self.env}'.")
             self.register_comments_window()
 

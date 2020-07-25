@@ -1,3 +1,4 @@
+import os
 import unittest
 
 import psutil
@@ -15,6 +16,12 @@ from mighty.utils.data import TransformDefault, DataLoader
 
 
 class TrainerTestCase(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        os.environ['VISDOM_SERVER'] = "http://85.217.171.57"
+        os.environ['VISDOM_PORT'] = '8099'
+        os.environ['VISDOM_BASE_URL'] = '/travis'
 
     def setUp(self):
         set_seed(1)
@@ -38,7 +45,6 @@ class TrainerTestCase(unittest.TestCase):
                               data_loader=self.data_loader,
                               optimizer=self.optimizer,
                               scheduler=self.scheduler)
-        trainer.open_monitor(offline=True)
         loss_epochs = trainer.train(n_epochs=1, mutual_info_layers=0)
         assert_array_almost_equal(loss_epochs, [0.2287357747])
 
@@ -49,7 +55,6 @@ class TrainerTestCase(unittest.TestCase):
                                    data_loader=self.data_loader,
                                    optimizer=self.optimizer,
                                    scheduler=self.scheduler)
-        trainer.open_monitor(offline=True)
         loss_epochs = trainer.train(n_epochs=1, mutual_info_layers=0)
         assert_array_almost_equal(loss_epochs, [0.04264699295])
 
@@ -87,10 +92,8 @@ class TrainerTestCase(unittest.TestCase):
                                      data_loader=self.data_loader,
                                      optimizer=self.optimizer,
                                      scheduler=self.scheduler)
-        trainer.open_monitor(offline=True)
         loss_epochs = trainer.train(n_epochs=1, mutual_info_layers=0)
         assert_array_almost_equal(loss_epochs, [0.69737625122])
-        print(loss_epochs)
 
     def test_TrainerAutoencoder_cached(self):
         set_seed(3)
