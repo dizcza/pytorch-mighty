@@ -8,3 +8,4 @@ ignored/
 *.egg-info/
 dist/
 build/
+visdom_logs/

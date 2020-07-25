@@ -247,8 +247,8 @@ class Monitor:
             ))
 
     def update_accuracy_epoch(self, labels_pred, labels_true, mode):
-        self.update_accuracy(
-            accuracy=calc_accuracy(labels_true, labels_pred), mode=mode)
+        accuracy = calc_accuracy(labels_true, labels_pred)
+        self.update_accuracy(accuracy=accuracy, mode=mode)
         title = f"Confusion matrix '{mode}'"
         if len(labels_true.unique()) <= self.n_classes_format_ytickstep_1:
             # don't plot huge matrices
@@ -258,6 +258,7 @@ class Monitor:
                 xlabel='Predicted label',
                 ylabel='True label',
             ))
+        return accuracy
 
     def plot_adversarial_examples(self, model: nn.Module,
                                   adversarial_examples: AdversarialExamples,

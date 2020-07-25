@@ -16,9 +16,14 @@ class Accuracy(ABC):
 
     def __init__(self):
         self.true_labels_cached = []
+        self.predicted_labels_cached = []
 
     def reset(self):
+        self.reset_labels()
+
+    def reset_labels(self):
         self.true_labels_cached.clear()
+        self.predicted_labels_cached.clear()
 
     def partial_fit(self, outputs_batch, labels_batch):
         """
@@ -52,14 +57,6 @@ class Accuracy(ABC):
 
 
 class AccuracyArgmax(Accuracy):
-
-    def __init__(self):
-        super().__init__()
-        self.predicted_labels_cached = []
-
-    def reset(self):
-        super().reset()
-        self.predicted_labels_cached.clear()
 
     def predict(self, outputs_test):
         labels_predicted = outputs_test.argmax(dim=-1)

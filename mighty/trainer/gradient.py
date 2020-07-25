@@ -1,12 +1,9 @@
 from typing import Union
 
-import torch
 import torch.nn as nn
 from torch.optim.lr_scheduler import _LRScheduler, ReduceLROnPlateau
 from torch.optim.optimizer import Optimizer
 
-from mighty.monitor.accuracy import AccuracyArgmax, calc_accuracy
-from mighty.utils.common import batch_to_cuda
 from mighty.utils.data import DataLoader
 from .trainer import Trainer
 
@@ -62,17 +59,6 @@ class TrainerGrad(Trainer):
         loss.backward()
         self.optimizer.step(closure=None)
         return loss
-
-    def _on_forward_pass_batch(self, batch, output, train):
-        if self.is_unsupervised():
-            # unsupervised, no labels
-            return
-        _, labels = batch
-        self.accuracy_measure.partial_fit(output, labels)
-
-    def _get_loss(self, batch, output):
-        input, labels = batch
-        return self.criterion(output, labels)
 
     def _epoch_finished(self, loss):
         if isinstance(self.scheduler, ReduceLROnPlateau):

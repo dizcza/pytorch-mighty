@@ -13,10 +13,11 @@ from tqdm import tqdm
 
 from mighty.loss import PairLoss
 from mighty.monitor.accuracy import AccuracyEmbedding, \
-    AccuracyArgmax, Accuracy, calc_accuracy
+    AccuracyArgmax, Accuracy
 from mighty.monitor.batch_timer import timer
 from mighty.monitor.monitor import Monitor
-from mighty.monitor.mutual_info import MutualInfoNeuralEstimation, MutualInfoStub
+from mighty.monitor.mutual_info import MutualInfoNeuralEstimation, \
+    MutualInfoStub
 from mighty.monitor.var_online import MeanOnline
 from mighty.trainer.mask import MaskTrainer
 from mighty.utils.common import find_named_layers, batch_to_cuda, \
@@ -170,10 +171,22 @@ class Trainer(ABC):
         return checkpoint_state
 
     def _get_loss(self, batch, output):
-        raise NotImplementedError()
+        # In case of unsupervised learning, '_get_loss' is overridden
+        # accordingly.
+        input, labels = batch
+        return self.criterion(output, labels)
 
     def _on_forward_pass_batch(self, batch, output, train):
-        pass
+        if self.is_unsupervised():
+            # unsupervised, no labels
+            return
+        _, labels = batch
+        if train:
+            self.accuracy_measure.partial_fit(output, labels)
+        else:
+            self.accuracy_measure.true_labels_cached.append(labels)
+            labels_pred = self.accuracy_measure.predict(output)
+            self.accuracy_measure.predicted_labels_cached.append(labels_pred)
 
     def _forward(self, batch):
         input = input_from_batch(batch)
@@ -185,6 +198,7 @@ class Trainer(ABC):
     def full_forward_pass(self, train=True):
         mode_saved = self.model.training
         self.model.train(False)
+        self.accuracy_measure.reset_labels()
         loss_online = MeanOnline()
 
         if train:
@@ -205,10 +219,9 @@ class Trainer(ABC):
         self.mutual_info.finish_listening()
         self.model.train(mode_saved)
 
-        mode = 'train' if train else 'test'
         loss = loss_online.get_mean()
-        self.monitor.update_loss(loss, mode=mode)
-        self._update_accuracy(mode=mode)
+        self.monitor.update_loss(loss, mode='train' if train else 'test')
+        self._update_accuracy(train=train)
 
         return loss
 
@@ -218,11 +231,11 @@ class Trainer(ABC):
             online_measure.reset()
         self.accuracy_measure.reset()
 
-    def _update_accuracy(self, mode='train'):
+    def _update_accuracy(self, train=True):
         if self.is_unsupervised():
             return
         labels_true = torch.cat(self.accuracy_measure.true_labels_cached)
-        if isinstance(self.accuracy_measure, AccuracyArgmax):
+        if not train or isinstance(self.accuracy_measure, AccuracyArgmax):
             labels_pred = torch.cat(
                 self.accuracy_measure.predicted_labels_cached)
         elif getattr(self.accuracy_measure, 'cache', False):
@@ -236,9 +249,8 @@ class Trainer(ABC):
                     labels_pred.append(self.accuracy_measure.predict(output))
             labels_pred = torch.cat(labels_pred, dim=0)
 
-        self.monitor.update_accuracy_epoch(labels_pred, labels_true,
-                                           mode=mode)
-        accuracy = calc_accuracy(labels_true, labels_pred)
+        accuracy = self.monitor.update_accuracy_epoch(
+            labels_pred, labels_true, mode='train' if train else 'test')
         self.update_best_score(accuracy, score_type='accuracy')
 
     def train_mask(self):
@@ -339,6 +351,7 @@ class Trainer(ABC):
             self.mutual_info.prepare(model=self.model,
                                      monitor_layers_count=mutual_info_layers)
 
+        loss_epochs = []
         for epoch in range(self.timer.epoch, self.timer.epoch + n_epochs):
             self.train_epoch(epoch=epoch)
             loss = self.full_forward_pass(train=True)
@@ -351,3 +364,5 @@ class Trainer(ABC):
             if mask_explain:
                 self.train_mask()
             self._epoch_finished(loss)
+            loss_epochs.append(loss.item())
+        return loss_epochs
