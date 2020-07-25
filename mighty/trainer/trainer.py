@@ -315,11 +315,10 @@ class Trainer(ABC):
             self.monitor.open(env_name=self.env_name, offline=offline)
             self.monitor.clear()
 
-    def train(self, n_epochs=10, epoch_update_step=1, mutual_info_layers=1,
+    def train(self, n_epochs=10, mutual_info_layers=1,
               adversarial=False, mask_explain=False):
         """
         :param n_epochs: number of training epochs
-        :param epoch_update_step: epoch step to run full evaluation
         :param mutual_info_layers: number of last layers to be monitored for mutual information;
                                    pass '0' to turn off this feature.
         :param adversarial: perform adversarial attack test?
@@ -342,16 +341,13 @@ class Trainer(ABC):
 
         for epoch in range(self.timer.epoch, self.timer.epoch + n_epochs):
             self.train_epoch(epoch=epoch)
-            if epoch % epoch_update_step == 0:
-                loss = self.full_forward_pass(train=True)
-                self.full_forward_pass(train=False)
-                self.monitor.epoch_finished()
-                if adversarial:
-                    self.monitor.plot_adversarial_examples(
-                        self.model,
-                        self.get_adversarial_examples())
-                if mask_explain:
-                    self.train_mask()
-                # TODO: epoch_finished should be called on each epoch
-                # independently of the update step
-                self._epoch_finished(loss)
+            loss = self.full_forward_pass(train=True)
+            self.full_forward_pass(train=False)
+            self.monitor.epoch_finished()
+            if adversarial:
+                self.monitor.plot_adversarial_examples(
+                    self.model,
+                    self.get_adversarial_examples())
+            if mask_explain:
+                self.train_mask()
+            self._epoch_finished(loss)
