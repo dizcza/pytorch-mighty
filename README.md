@@ -1,5 +1,8 @@
 # pytorch-mighty
 
+[![CircleCI](https://circleci.com/gh/dizcza/pytorch-mighty.svg?style=svg)](https://app.circleci.com/pipelines/github/dizcza/pytorch-mighty)
+
+
 The Mighty Monitor Trainer for your pytorch models. Powered by [Visdom](https://github.com/facebookresearch/visdom).
 
 ![](images/training-progress.png)
