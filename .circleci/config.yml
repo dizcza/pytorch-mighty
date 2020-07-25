@@ -1,0 +1,51 @@
+version: 2.1
+
+orbs:
+  python: circleci/python@0.3.2
+
+jobs:
+  build-conda:
+    executor: python/default
+    steps:
+      - checkout
+      - python/load-cache:
+          key: conda
+      - run:
+         command: |
+           wget -q https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+           bash miniconda.sh -b -p $HOME/miniconda
+           source "$HOME/miniconda/etc/profile.d/conda.sh"
+           conda config --set always_yes yes
+           conda update conda
+           conda create -n mighty python=3.6 scikit-learn tqdm scipy
+           conda activate mighty
+           conda install pytorch torchvision cpuonly -c pytorch
+           pip list
+           pip -V
+         name: conda-install
+      - run: pip install -r requirements.txt
+      - python/save-cache:
+          key: conda
+      - run:
+          command: python -m unittest discover -s mighty/tests
+          name: Test
+
+  build-pip:
+    executor: python/default
+    steps:
+      - checkout
+      - python/load-cache:
+          key: pip
+      - run: pip install -r requirements.txt
+      - python/save-cache:
+          key: pip
+      - python/dist
+      - run:
+          command: python -m unittest discover -s mighty/tests
+          name: Test
+
+workflows:
+  main:
+    jobs:
+      - build-pip
+      - build-conda

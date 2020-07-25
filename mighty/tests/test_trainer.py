@@ -56,7 +56,7 @@ class TrainerTestCase(unittest.TestCase):
                                    optimizer=self.optimizer,
                                    scheduler=self.scheduler)
         loss_epochs = trainer.train(n_epochs=1, mutual_info_layers=0)
-        assert_array_almost_equal(loss_epochs, [0.04264699295])
+        assert_array_almost_equal(loss_epochs, [0.043648], decimal=3)
 
     def test_TrainerEmbedding_cached(self):
         set_seed(3)
