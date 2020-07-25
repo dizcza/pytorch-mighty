@@ -1,4 +1,9 @@
+from collections import namedtuple
+
 import torch.nn as nn
+
+AutoencoderOutput = namedtuple("AutoencoderOutput",
+                               ("latent", "reconstructed"))
 
 
 class AutoencoderLinear(nn.Module):
@@ -53,4 +58,4 @@ class AutoencoderLinear(nn.Module):
         encoded = self.encoder(x)
         decoded = self.decoder(encoded)
         decoded = decoded.view(*input_shape)
-        return encoded, decoded
+        return AutoencoderOutput(encoded, decoded)

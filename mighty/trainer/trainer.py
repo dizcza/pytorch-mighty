@@ -12,6 +12,7 @@ import torch.utils.data
 from tqdm import tqdm
 
 from mighty.loss import PairLoss
+from mighty.models import AutoencoderOutput
 from mighty.monitor.accuracy import AccuracyEmbedding, \
     AccuracyArgmax, Accuracy
 from mighty.monitor.batch_timer import timer
@@ -221,7 +222,7 @@ class Trainer(ABC):
 
         loss = loss_online.get_mean()
         self.monitor.update_loss(loss, mode='train' if train else 'test')
-        self._update_accuracy(train=train)
+        self.update_accuracy(train=train)
 
         return loss
 
@@ -231,9 +232,9 @@ class Trainer(ABC):
             online_measure.reset()
         self.accuracy_measure.reset()
 
-    def _update_accuracy(self, train=True):
+    def update_accuracy(self, train=True):
         if self.is_unsupervised():
-            return
+            return None
         labels_true = torch.cat(self.accuracy_measure.true_labels_cached)
         if not train or isinstance(self.accuracy_measure, AccuracyArgmax):
             labels_pred = torch.cat(
@@ -246,12 +247,16 @@ class Trainer(ABC):
                 for batch in self.data_loader.eval():
                     batch = batch_to_cuda(batch)
                     output = self._forward(batch)
+                    if isinstance(output, AutoencoderOutput):
+                        output = output.latent
                     labels_pred.append(self.accuracy_measure.predict(output))
             labels_pred = torch.cat(labels_pred, dim=0)
 
         accuracy = self.monitor.update_accuracy_epoch(
             labels_pred, labels_true, mode='train' if train else 'test')
         self.update_best_score(accuracy, score_type='accuracy')
+
+        return accuracy
 
     def train_mask(self):
         """

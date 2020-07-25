@@ -8,7 +8,6 @@ from torch.optim.optimizer import Optimizer
 
 from mighty.loss import LossPenalty
 from mighty.monitor.monitor import MonitorAutoencoder
-from mighty.monitor.accuracy import Accuracy, AccuracyAutoencoder
 from mighty.monitor.var_online import MeanOnline
 from mighty.utils.algebra import compute_psnr
 from mighty.utils.common import input_from_batch, batch_to_cuda
@@ -24,14 +23,9 @@ class TrainerAutoencoder(TrainerEmbedding):
                  data_loader: DataLoader,
                  optimizer: Optimizer,
                  scheduler: Union[_LRScheduler, ReduceLROnPlateau] = None,
-                 accuracy_measure: Accuracy = AccuracyAutoencoder(),
                  **kwargs):
-        if not isinstance(accuracy_measure, AccuracyAutoencoder):
-            raise ValueError("'accuracy_measure' must be of instance "
-                             f"{AccuracyAutoencoder.__name__}")
         super().__init__(model, criterion=criterion, data_loader=data_loader,
-                         optimizer=optimizer, scheduler=scheduler,
-                         accuracy_measure=accuracy_measure, **kwargs)
+                         optimizer=optimizer, scheduler=scheduler, **kwargs)
 
     def _init_monitor(self, mutual_info) -> MonitorAutoencoder:
         monitor = MonitorAutoencoder(

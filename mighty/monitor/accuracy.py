@@ -149,27 +149,3 @@ class AccuracyEmbedding(Accuracy):
         distances = self.distances(outputs_test)
         proba = 1 - distances / distances.sum(dim=1).unsqueeze(1)
         return proba
-
-
-class AccuracyAutoencoder(AccuracyEmbedding):
-    """
-    AccuracyAutoencoder measures the accuracy of correctly classifying the
-    class label, if provided, based on the embedding vector.
-
-    If the true labels are not known, i.e. unsupervised learning regime,
-    it does nothing.
-    """
-
-    def predict_cached(self):
-        if not self.cache:
-            raise ValueError("Caching is turned off")
-        if len(self.input_cached) == 0:
-            raise ValueError("Empty cached input buffer")
-        input = torch.cat(self.input_cached,  dim=0)
-        return super().predict(input)
-
-    def predict(self, outputs_test):
-        # partial_fit() is called from TrainerGrad which already has
-        # latent tensor as the output
-        latent, reconstructed = outputs_test
-        return super().predict(latent)

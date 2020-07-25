@@ -37,7 +37,7 @@ class VisdomMighty(visdom.Visdom):
         self.with_markers = False
 
         if offline:
-            print(f"Visdom logs are stored in {log_to_filename}")
+            print(f"Visdom logs are saved in {log_to_filename}")
         else:
             print(f"Monitor is opened at {self.server}:{self.port}. "
                   f"Choose environment '{self.env}'.")

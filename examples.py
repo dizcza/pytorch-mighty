@@ -5,7 +5,7 @@ from PIL import Image
 from torchvision.datasets import MNIST
 
 from mighty.models import *
-from mighty.monitor.accuracy import AccuracyArgmax, AccuracyAutoencoder
+from mighty.monitor.accuracy import AccuracyArgmax, AccuracyEmbedding
 from mighty.monitor.monitor import Monitor
 from mighty.monitor.mutual_info import *
 from mighty.trainer import *
@@ -101,7 +101,7 @@ def train_autoencoder(n_epoch=60, dataset_cls=MNIST):
                                  data_loader=data_loader,
                                  optimizer=optimizer,
                                  scheduler=scheduler,
-                                 accuracy_measure=AccuracyAutoencoder(
+                                 accuracy_measure=AccuracyEmbedding(
                                      cache=True))
     # trainer.restore()  # uncomment to restore the saved state
     trainer.monitor.advanced_monitoring(level=MonitorLevel.SIGNAL_TO_NOISE)
