@@ -252,6 +252,13 @@ class Trainer(ABC):
                     labels_pred.append(self.accuracy_measure.predict(output))
             labels_pred = torch.cat(labels_pred, dim=0)
 
+        if labels_true.is_cuda:
+            warnings.warn("labels_true is cuda")
+            labels_true = labels_true.cpu()
+        if labels_pred.is_cuda:
+            warnings.warn("labels_pred is cuda")
+            labels_pred = labels_pred.cpu()
+
         accuracy = self.monitor.update_accuracy_epoch(
             labels_pred, labels_true, mode='train' if train else 'test')
         self.update_best_score(accuracy, score_type='accuracy')
