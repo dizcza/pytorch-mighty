@@ -136,6 +136,7 @@ class AccuracyEmbedding(Accuracy):
         if len(self.input_cached) == 0:
             raise ValueError("Empty cached input buffer")
         input = torch.cat(self.input_cached,  dim=0)
+        # the output device type is CPU
         return self.predict(input)
 
     def predict(self, outputs_test):
@@ -143,9 +144,9 @@ class AccuracyEmbedding(Accuracy):
         labels_stored = self.centroids_dict.labels()
         labels_stored = torch.IntTensor(labels_stored)
         labels_predicted = labels_stored[argmin]
-        return labels_predicted
+        return labels_predicted.to(device=outputs_test.device)
 
     def predict_proba(self, outputs_test):
         distances = self.distances(outputs_test)
         proba = 1 - distances / distances.sum(dim=1).unsqueeze(1)
-        return proba
+        return proba.to(device=outputs_test.device)

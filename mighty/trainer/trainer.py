@@ -185,8 +185,8 @@ class Trainer(ABC):
         if train:
             self.accuracy_measure.partial_fit(output, labels)
         else:
-            self.accuracy_measure.true_labels_cached.append(labels)
-            labels_pred = self.accuracy_measure.predict(output)
+            self.accuracy_measure.true_labels_cached.append(labels.cpu())
+            labels_pred = self.accuracy_measure.predict(output).cpu()
             self.accuracy_measure.predicted_labels_cached.append(labels_pred)
 
     def _forward(self, batch):
@@ -249,7 +249,8 @@ class Trainer(ABC):
                     output = self._forward(batch)
                     if isinstance(output, AutoencoderOutput):
                         output = output.latent
-                    labels_pred.append(self.accuracy_measure.predict(output))
+                    labels_pred.append(
+                        self.accuracy_measure.predict(output).cpu())
             labels_pred = torch.cat(labels_pred, dim=0)
 
         if labels_true.is_cuda:
