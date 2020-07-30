@@ -16,7 +16,7 @@ class MutualInfoIDTxl(MutualInfoPCA):
 
     def __init__(self, data_loader: DataLoader, pca_size=50, debug=False):
         super().__init__(data_loader=data_loader, pca_size=pca_size, debug=debug)
-        settings = {'kraskov_k': 6}
+        settings = {'kraskov_k': 4}
         try:
             self.estimator = OpenCLKraskovMI(settings=settings)
         except RuntimeError:
