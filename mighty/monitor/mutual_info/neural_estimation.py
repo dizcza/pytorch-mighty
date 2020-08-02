@@ -80,7 +80,8 @@ class MINE_Trainer:
             mine_model = mine_model.cuda()
         self.mine_model = mine_model
         self.optimizer = torch.optim.Adam(self.mine_model.parameters(),
-                                          lr=learning_rate)
+                                          lr=learning_rate,
+                                          weight_decay=1e-5)
         self.smooth_filter_size = smooth_filter_size
 
         self.scheduler = None
@@ -123,7 +124,8 @@ class MINE_Trainer:
         self.optimizer.step()
 
     def _smooth(self):
-        return exponential_moving_average(self.mi_history,
+        history = np.array(self.mi_history)[~np.isnan(self.mi_history)]
+        return exponential_moving_average(history,
                                           window=self.smooth_filter_size)
 
     def get_mutual_info(self):
