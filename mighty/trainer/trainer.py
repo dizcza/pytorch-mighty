@@ -12,7 +12,7 @@ import torch.utils.data
 from tqdm import tqdm
 
 from mighty.loss import PairLoss
-from mighty.models import AutoencoderOutput
+from mighty.models import AutoencoderOutput, MLP
 from mighty.monitor.accuracy import AccuracyEmbedding, \
     AccuracyArgmax, Accuracy
 from mighty.monitor.batch_timer import timer
@@ -30,7 +30,7 @@ from mighty.utils.prepare import prepare_eval
 
 
 class Trainer(ABC):
-    watch_modules = (nn.Linear, nn.Conv2d)
+    watch_modules = (nn.Linear, nn.Conv2d, MLP)
 
     def __init__(self,
                  model: nn.Module,

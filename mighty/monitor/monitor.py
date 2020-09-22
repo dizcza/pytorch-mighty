@@ -341,7 +341,7 @@ class Monitor:
         if self._advanced_monitoring_level is MonitorLevel.FULL:
             self.param_records.plot_sign_flips(self.viz)
             self.update_initial_difference()
-            self.update_weight_trace_signal_to_noise_ratio()
+            # self.update_weight_trace_signal_to_noise_ratio()
             self.update_weight_histogram()
         self.reset()
 
