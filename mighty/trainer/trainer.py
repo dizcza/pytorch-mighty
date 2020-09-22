@@ -82,6 +82,10 @@ class Trainer(ABC):
         self.online = self._init_online_measures()
         self.best_score = 0.
 
+    @property
+    def epoch(self):
+        return self.timer.epoch
+
     def checkpoint_path(self, best=False):
         checkpoint_dir = self.checkpoint_dir
         if best:
@@ -340,7 +344,7 @@ class Trainer(ABC):
             self.monitor.open(env_name=self.env_name, offline=offline)
             self.monitor.clear()
 
-    def train(self, n_epochs=10, mutual_info_layers=1,
+    def train(self, n_epochs=10, mutual_info_layers=0,
               adversarial=False, mask_explain=False):
         """
         :param n_epochs: number of training epochs

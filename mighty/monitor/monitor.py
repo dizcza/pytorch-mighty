@@ -234,7 +234,7 @@ class Monitor:
                     xtype='log',
                     ytype='log',
                 ))
-        if np.isfinite(snr).all():
+        if any(snr) and np.isfinite(snr).all():
             snr.append(torch.tensor(1.))
             legend.append('phase-transition')
             self.viz.line_update(y=snr, opts=dict(
