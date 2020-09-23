@@ -102,12 +102,15 @@ class Trainer(ABC):
         self.monitor.log_self()
         self.monitor.log(repr(self.accuracy_measure))
         self.monitor.log(repr(self.mutual_info))
-        git_dir = Path(sys.argv[0]).parent / '.git'
-        commit = subprocess.run(['git', '--git-dir', str(git_dir),
-                                 'rev-parse', 'HEAD'],
-                                stdout=subprocess.PIPE,
-                                universal_newlines=True)
-        self.monitor.log(f"Git commit: {commit.stdout}")
+        git_dir = Path(sys.argv[0]).parent
+        while str(git_dir) != git_dir.root:
+            commit = subprocess.run(['git', '--git-dir', str(git_dir / '.git'),
+                                     'rev-parse', 'HEAD'],
+                                    capture_output=True)
+            if commit.returncode == 0:
+                self.monitor.log(f"Git commit: {commit.stdout.decode()}")
+                break
+            git_dir = git_dir.parent
 
     def _init_monitor(self, mutual_info) -> Monitor:
         monitor = Monitor(
