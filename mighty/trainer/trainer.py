@@ -106,9 +106,11 @@ class Trainer(ABC):
         while str(git_dir) != git_dir.root:
             commit = subprocess.run(['git', '--git-dir', str(git_dir / '.git'),
                                      'rev-parse', 'HEAD'],
-                                    capture_output=True)
+                                    stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE,
+                                    universal_newlines=True)
             if commit.returncode == 0:
-                self.monitor.log(f"Git commit: {commit.stdout.decode()}")
+                self.monitor.log(f"Git commit: {commit.stdout}")
                 break
             git_dir = git_dir.parent
 
