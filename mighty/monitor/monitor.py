@@ -154,10 +154,14 @@ class Monitor:
         ), name=mode)
 
     def update_accuracy(self, accuracy: float, mode='batch'):
+        title = 'Accuracy'
+        if isinstance(self, MonitorAutoencoder):
+            # the ability to identify class ID given an embedding vector
+            title = f"{title} embedding"
         self.viz.line_update(accuracy, opts=dict(
             xlabel='Epoch',
             ylabel='Accuracy',
-            title=f'Accuracy'
+            title=title
         ), name=mode)
 
     def clear(self):
