@@ -11,7 +11,7 @@ import torch.nn as nn
 import torch.utils.data
 from tqdm import tqdm
 
-from mighty.loss import PairLoss
+from mighty.loss import PairLoss, LossPenalty
 from mighty.models import AutoencoderOutput, MLP
 from mighty.monitor.accuracy import AccuracyEmbedding, \
     AccuracyArgmax, Accuracy
@@ -64,11 +64,15 @@ class Trainer(ABC):
         self.timer = timer
         self.timer.init(batches_in_epoch=len(self.train_loader))
         self.timer.set_epoch(0)
+        criterion_name = self.criterion.__class__.__name__
+        if isinstance(criterion, LossPenalty):
+            criterion_name = f"{criterion_name}(" \
+                             f"{criterion.criterion.__class__.__name__})"
         self.env_name = f"{time.strftime('%Y.%m.%d')} " \
                         f"{model.__class__.__name__}: " \
                         f"{data_loader.dataset_cls.__name__} " \
                         f"{self.__class__.__name__} " \
-                        f"{criterion.__class__.__name__}"
+                        f"{criterion_name}"
         env_suffix = env_suffix.lstrip(' ')
         if env_suffix:
             self.env_name = f'{self.env_name} {env_suffix}'
@@ -111,7 +115,8 @@ class Trainer(ABC):
                                     stderr=subprocess.PIPE,
                                     universal_newlines=True)
             if commit.returncode == 0:
-                self.monitor.log(f"Git commit: {commit.stdout}")
+                self.monitor.log(f"Git location '{str(git_dir)}' "
+                                 f"commit: {commit.stdout}")
                 break
             git_dir = git_dir.parent
 
