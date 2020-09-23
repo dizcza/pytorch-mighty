@@ -63,6 +63,7 @@ class Trainer(ABC):
         self.checkpoint_dir = Path(checkpoint_dir)
         self.timer = timer
         self.timer.init(batches_in_epoch=len(self.train_loader))
+        self.timer.set_epoch(0)
         self.env_name = f"{time.strftime('%Y.%m.%d')} " \
                         f"{model.__class__.__name__}: " \
                         f"{data_loader.dataset_cls.__name__} " \
