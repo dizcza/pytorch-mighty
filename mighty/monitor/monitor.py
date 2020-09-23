@@ -409,6 +409,21 @@ class MonitorEmbedding(Monitor):
             title='Output L1 sparsity',
         ), name=mode)
 
+    def embedding_hist(self, activations):
+        r"""
+        Plots embedding activations histogram.
+
+        Parameters
+        ----------
+        activations : (N,) averaged embedding vector
+        """
+        title = "Embedding activations hist"
+        self.viz.histogram(X=activations, win=title, opts=dict(
+            xlabel='Neuron value',
+            ylabel='# bins (distribution)',
+            title=title,
+        ))
+
     def clusters_heatmap(self, mean, std, save=False):
         """
         Cluster centers distribution heatmap.
@@ -435,10 +450,10 @@ class MonitorEmbedding(Monitor):
             return l1_dist
 
         n_classes = mean.shape[0]
-        win = "Last layer activations heatmap"
+        win = "Embedding activations heatmap"
         opts = dict(
             title=f"{win}. Epoch {self.timer.epoch}",
-            xlabel='Embedding dimension',
+            xlabel='Neuron ID',
             ylabel='Label',
             rownames=list(map(str, range(n_classes))),
         )
