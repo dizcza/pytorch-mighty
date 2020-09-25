@@ -17,6 +17,27 @@ from .embedding import TrainerEmbedding
 
 
 class TrainerAutoencoder(TrainerEmbedding):
+    """
+    An unsupervised AutoEncoder trainer.
+
+    Parameters
+    ----------
+    model : nn.Module
+        A neural network to train.
+    criterion : nn.Module
+        A loss function.
+    data_loader : DataLoader
+        A data loader.
+    optimizer : Optimizer
+        An optimizer (Adam, SGD, etc.).
+    scheduler : _LRScheduler or ReduceLROnPlateau, or None
+        A learning rate scheduler.
+    accuracy_measure : AccuracyEmbedding
+        Calculates the accuracy of embedding vectors.
+    **kwargs
+        Passed to the base class.
+    """
+
     watch_modules = TrainerEmbedding.watch_modules + (AutoencoderLinear,)
 
     def __init__(self,
@@ -74,7 +95,9 @@ class TrainerAutoencoder(TrainerEmbedding):
         super()._epoch_finished(loss)
 
     def plot_autoencoder(self):
-        # plot AutoEncoder reconstruction
+        """
+        Plots AutoEncoder reconstruction.
+        """
         batch = self.data_loader.sample()
         batch = batch_to_cuda(batch)
         mode_saved = self.model.training

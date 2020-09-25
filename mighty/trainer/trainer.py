@@ -19,6 +19,7 @@ from mighty.monitor.batch_timer import timer
 from mighty.monitor.monitor import Monitor
 from mighty.monitor.mutual_info import MutualInfoNeuralEstimation, \
     MutualInfoStub
+from mighty.monitor.mutual_info.mutual_info import MutualInfo
 from mighty.monitor.var_online import MeanOnline
 from mighty.trainer.mask import MaskTrainer
 from mighty.utils.common import find_named_layers, batch_to_cuda, \
@@ -30,6 +31,39 @@ from mighty.utils.prepare import prepare_eval
 
 
 class Trainer(ABC):
+    """
+    A base trainer.
+
+    Parameters
+    ----------
+    model : nn.Module
+        A neural network to train.
+    criterion : nn.Module
+        Loss function.
+    data_loader : DataLoader
+        A data loader.
+    accuracy_measure : Accuracy
+        Calculates the accuracy from the last layer activations.
+        If None, set to :code:`AccuracyArgmax` for a classification problem
+        and :code:`AccuracyEmbedding` otherwise.
+        Default: None
+    mutual_info : MutualInfo
+        A handle to compute the mutual information I(X; T) and I(Y; T) [1]_.
+        If None, don't compute the mutual information.
+        Default: None
+    env_suffix : str
+        The suffix to add to the current environment name.
+        Default: ''
+    checkpoint_dir : Path or str
+        The path to store the checkpoints.
+        Default: '${HOME}/.mighty/checkpoints'
+
+    References
+    ----------
+    1. Shwartz-Ziv, R., & Tishby, N. (2017). Opening the black box of deep
+       neural networks via information. arXiv preprint arXiv:1703.00810.
+    """
+
     watch_modules = (nn.Linear, nn.Conv2d, MLP)
 
     def __init__(self,
@@ -40,17 +74,6 @@ class Trainer(ABC):
                  mutual_info=None,
                  env_suffix='',
                  checkpoint_dir=CHECKPOINTS_DIR):
-        """
-        :param model: NN model
-        :param criterion: loss function
-        :param dataset_name: one of "MNIST", "CIFAR10", "Caltech256"
-        :param accuracy_measure: depending on the loss function, the predicted label could be either
-                                 - argmax (cross-entropy loss)
-                                 - closest centroid ID (triplet loss)
-        :param env_suffix: monitor environment suffix
-        :param checkpoint_dir: path to the directory where model checkpoints will be stored
-        :param mutual_info: mutual information estimator
-        """
         if torch.cuda.is_available():
             model.cuda()
         self.model = model
@@ -89,18 +112,40 @@ class Trainer(ABC):
 
     @property
     def epoch(self):
+        """
+        The current epoch, int.
+        """
         return self.timer.epoch
 
     def checkpoint_path(self, best=False):
+        """
+        Get the checkpoint path, given the mode.
+
+        Parameters
+        ----------
+        best : bool
+            The best (True) or normal (False) mode.
+
+        Returns
+        -------
+        Path
+            Checkpoint path.
+        """
         checkpoint_dir = self.checkpoint_dir
         if best:
             checkpoint_dir = self.checkpoint_dir / "best"
         return checkpoint_dir / (self.env_name + '.pt')
 
     def monitor_functions(self):
+        """
+        Override this method to register `Visdom` callbacks on each epoch.
+        """
         pass
 
     def log_trainer(self):
+        """
+        Logs the trainer in `Visdom` text field.
+        """
         self.monitor.log_model(self.model)
         self.monitor.log(f"Criterion: {self.criterion}")
         self.monitor.log(repr(self.data_loader))
@@ -133,14 +178,57 @@ class Trainer(ABC):
 
     @abstractmethod
     def train_batch(self, batch):
+        """
+        The core function of a trainer to update the model parameters, given
+        a batch.
+
+        Parameters
+        ----------
+        batch : torch.Tensor or tuple of torch.Tensor
+            :code:`(X, Y)` or :code:`X` batch of input data.
+
+        Returns
+        -------
+        loss : torch.Tensor
+            The batch loss.
+
+        """
         raise NotImplementedError()
 
     def update_best_score(self, score, score_type=''):
+        """
+        If :code:`score` is greater than the :code:`self.best_score`, save
+        the model.
+
+        Parameters
+        ----------
+        score : float
+            The model score at the current epoch. The higher, the better.
+            The simplest way to use this function is set :code:`score = -loss`.
+        score_type : str
+            An optional user-defined key-word to determine the criteria for the
+            "best" score. For example, one may be interested in both the
+            accuracy and the loss of a model as a proxy to the "best" score.
+            Default: ''
+        """
         if score > self.best_score:
             self.best_score = score
             self.save(best=True)
 
     def save(self, best=False):
+        """
+        Saves the trainer and the model parameters to
+        :code:`self.checkpoint_path(best)`.
+
+        Parameters
+        ----------
+        best : bool
+            The mode (refer to :func:`Trainer.checkpoint_path`).
+
+        See Also
+        --------
+        restore : restore the training progress
+        """
         checkpoint_path = self.checkpoint_path(best)
         checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
         try:
@@ -149,6 +237,12 @@ class Trainer(ABC):
             print(error)
 
     def state_dict(self):
+        """
+        Returns
+        -------
+        dict
+            A dict of the trainer state to be saved.
+        """
         return {
             "model_state": self.model.state_dict(),
             "epoch": self.timer.epoch,
@@ -158,8 +252,23 @@ class Trainer(ABC):
 
     def restore(self, checkpoint_path=None, best=False, strict=True):
         """
-        :param checkpoint_path: train checkpoint path to restore
-        :param strict: model's load_state_dict strict argument
+        Restores the trainer progress and the model from the path.
+
+        Parameters
+        ----------
+        checkpoint_path : Path or None
+            Trainer checkpoint path to restore. If None, the default path
+            :code:`self.checkpoint_path()` is used.
+            Default: None
+        best : bool
+            The mode (refer to :func:`Trainer.checkpoint_path`).
+        strict : bool
+            Strict model loading or not.
+
+        Returns
+        -------
+        checkpoint_state : dict
+            The loaded state of a trainer.
         """
         if checkpoint_path is None:
             checkpoint_path = self.checkpoint_path(best)
@@ -209,9 +318,31 @@ class Trainer(ABC):
         return self.model(input)
 
     def is_unsupervised(self):
+        """
+        Returns
+        -------
+        bool
+            True, if the training is unsupervised and False otherwise.
+        """
         return not self.data_loader.has_labels
 
     def full_forward_pass(self, train=True):
+        """
+        Fixes the model weights, evaluates the epoch score and updates the
+        monitor.
+
+        Parameters
+        ----------
+        train : bool
+            Either train (True) or test (False) batches to run. In both cases,
+            the model is set to the evaluation regime via `self.model.eval()`.
+
+        Returns
+        -------
+        loss : torch.Tensor
+            The loss of a full forward pass.
+
+        """
         mode_saved = self.model.training
         self.model.train(False)
         self.accuracy_measure.reset_labels()
@@ -248,6 +379,20 @@ class Trainer(ABC):
         self.accuracy_measure.reset()
 
     def update_accuracy(self, train=True):
+        """
+        Updates the accuracy of the model.
+
+        Parameters
+        ----------
+        train : bool
+            Either train (True) or test (False) mode.
+
+        Returns
+        -------
+        accuracy : torch.Tensor
+            A scalar with the accuracy value.
+
+        """
         if self.is_unsupervised():
             return None
         labels_true = torch.cat(self.accuracy_measure.true_labels_cached)
@@ -283,7 +428,8 @@ class Trainer(ABC):
 
     def train_mask(self):
         """
-        Train mask to see what part of the image is crucial from the network perspective.
+        Train mask to see what part of an image is crucial from the network
+        perspective (saliency map).
         """
         images, labels = next(iter(self.train_loader))
         mask_trainer = MaskTrainer(self.accuracy_measure,
@@ -304,9 +450,21 @@ class Trainer(ABC):
 
     def get_adversarial_examples(self, noise_ampl=100, n_iter=10):
         """
-        :param noise_ampl: adversarial noise amplitude
-        :param n_iter: adversarial iterations
-        :return adversarial examples
+        Takes the first batch of images, creates the adversarial examples, and
+        returns the result.
+
+        Parameters
+        ----------
+        noise_ampl : float
+            Adversarial noise amplitude.
+        n_iter: int
+            Adversarial iterations to run.
+
+        Returns
+        -------
+        AdversarialExamples
+            Original, adversarial images and the true labels.
+
         """
         images, labels = next(iter(self.train_loader))
         if torch.cuda.is_available():
@@ -330,8 +488,13 @@ class Trainer(ABC):
 
     def train_epoch(self, epoch):
         """
-        :param epoch: epoch id
-        :return: last batch loss
+        Trains an epoch.
+
+        Parameters
+        ----------
+        epoch : int
+            Epoch ID.
+
         """
         loss_online = MeanOnline()
         for batch in tqdm(self.train_loader,
@@ -349,6 +512,15 @@ class Trainer(ABC):
                                  mode='batch')
 
     def open_monitor(self, offline=False):
+        """
+        Opens a `Visdom` monitor.
+
+        Parameters
+        ----------
+        offline : bool
+            Online (False) or offline (True) monitoring.
+
+        """
         # visdom can be already initialized via trainer.restore()
         if self.monitor.viz is None:
             # new environment
@@ -358,11 +530,36 @@ class Trainer(ABC):
     def train(self, n_epochs=10, mutual_info_layers=0,
               adversarial=False, mask_explain=False):
         """
-        :param n_epochs: number of training epochs
-        :param mutual_info_layers: number of last layers to be monitored for mutual information;
-                                   pass '0' to turn off this feature.
-        :param adversarial: perform adversarial attack test?
-        :param mask_explain: train the image mask that 'explains' network behaviour?
+        User-entry function to train the model for :code:`n_epochs`.
+
+        Parameters
+        ----------
+        n_epochs : int
+            The number of epochs to run.
+            Default: 10
+        mutual_info_layers : int
+            Evaluate the mutual information [1]_ from the last
+            :code:`mutual_info_layers` layers at each epoch. If set to 0,
+            skip the (time-consuming) mutual information estimation.
+            Default: 0
+        adversarial : bool
+            Show the adversarial examples or not.
+            Default: False
+        mask_explain : bool
+            Show the saliency map [2]_ or not.
+
+        Returns
+        -------
+        loss_epochs : list
+            A list of epoch loss.
+
+        References
+        ----------
+        1. Shwartz-Ziv, R., & Tishby, N. (2017). Opening the black box of deep
+           neural networks via information. arXiv preprint arXiv:1703.00810.
+        2. Fong, R. C., & Vedaldi, A. (2017). Interpretable explanations of
+           black boxes by meaningful perturbation.
+
         """
         print(self.model)
         self.open_monitor()

@@ -14,7 +14,25 @@ from .gradient import TrainerGrad
 
 class TrainerEmbedding(TrainerGrad):
     """
-    Operates on embedding vectors.
+    An (unsupervised) trainer with the goal to transform input data into
+    linearly-separable embedding vectors that form clusters.
+
+    Parameters
+    ----------
+    model : nn.Module
+        A neural network to train.
+    criterion : nn.Module
+        A loss function.
+    data_loader : DataLoader
+        A data loader.
+    optimizer : Optimizer
+        An optimizer (Adam, SGD, etc.).
+    scheduler : _LRScheduler or ReduceLROnPlateau, or None
+        A learning rate scheduler.
+    accuracy_measure : AccuracyEmbedding
+        Calculates the accuracy of embedding vectors.
+    **kwargs
+        Passed to the base class.
     """
 
     def __init__(self,
@@ -25,14 +43,6 @@ class TrainerEmbedding(TrainerGrad):
                  scheduler: Union[_LRScheduler, ReduceLROnPlateau] = None,
                  accuracy_measure: Accuracy = AccuracyEmbedding(),
                  **kwargs):
-        """
-        :param model: NN model
-        :param criterion: loss function
-        :param dataset_name: one of "MNIST", "CIFAR10", "Caltech256"
-        :param optimizer: gradient-based optimizer (SGD, Adam)
-        :param scheduler: learning rate scheduler
-        :param kwta_scheduler: kWTA sparsity and hardness scheduler
-        """
         if not isinstance(accuracy_measure, AccuracyEmbedding):
             raise ValueError("'accuracy_measure' must be of instance "
                              f"{AccuracyEmbedding.__name__}")

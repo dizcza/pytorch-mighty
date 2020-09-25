@@ -10,7 +10,22 @@ from .trainer import Trainer
 
 class TrainerGrad(Trainer):
     """
-    Default gradient descent trainer with full float precision.
+    Default gradient descent trainer.
+
+    Parameters
+    ----------
+    model : nn.Module
+        A neural network to train.
+    criterion : nn.Module
+        A loss function.
+    data_loader : DataLoader
+        A data loader.
+    optimizer : Optimizer
+        An optimizer (Adam, SGD, etc.).
+    scheduler : _LRScheduler or ReduceLROnPlateau, or None
+        A learning rate scheduler.
+    **kwargs
+        Passed to the base class.
     """
 
     def __init__(self,
@@ -20,13 +35,6 @@ class TrainerGrad(Trainer):
                  optimizer: Optimizer,
                  scheduler: Union[_LRScheduler, ReduceLROnPlateau] = None,
                  **kwargs):
-        """
-        :param model: NN model
-        :param criterion: loss function
-        :param dataset_name: one of "MNIST", "CIFAR10", "Caltech256"
-        :param optimizer: gradient-based optimizer (SGD, Adam)
-        :param scheduler: learning rate scheduler
-        """
         super().__init__(model, criterion=criterion, data_loader=data_loader, **kwargs)
         self.optimizer = optimizer
         self.scheduler = scheduler
