@@ -53,6 +53,22 @@ class AutoencoderLinear(nn.Module):
         self.decoder = nn.Linear(self.encoding_dim, input_dim)
 
     def forward(self, x):
+        """
+        AutoEncoder forward pass.
+
+        Parameters
+        ----------
+        x : (B, C, H, W) torch.Tensor
+            Input images.
+
+        Returns
+        -------
+        AutoencoderOutput
+            A namedtuple with two keys:
+              `.encoded` - (B, V) latent representation of the input images.
+
+              `.decoded` - reconstructed input of the same shape as `x`.
+        """
         input_shape = x.shape
         x = x.flatten(start_dim=1)
         encoded = self.encoder(x)

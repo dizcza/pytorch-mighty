@@ -4,6 +4,17 @@ import torch.nn as nn
 
 
 class SerializableModule(nn.Module, ABC):
+    """
+    A serializable module to easily save and restore the attributes, defined
+    in `state_attr`.
+
+    Attributes
+    ----------
+    state_attr : list of str
+        A list of module attribute names to be a part of a state dict - the
+        result of :func:`SerializableModule.state_dict`.
+    """
+
     state_attr = []
 
     def state_dict(self, destination=None, prefix='', keep_vars=False):
