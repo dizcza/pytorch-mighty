@@ -3,6 +3,24 @@ import torch.nn as nn
 
 
 class LossPenalty(nn.Module):
+    """
+    A wrapper for reconstruction `loss` with a norm penalty.
+
+    Parameters
+    ----------
+    criterion : nn.Module
+        Reconstruction loss without the penalty.
+    lambd : float, optional
+        A penalty constant.
+        Default: 0.5
+    norm : int, optional
+        The penalty norm.
+        Default: 1
+    latent_grad : bool, optional
+        Keep the gradient (True) or detach (False) the latent vectors before
+        computing the penalty loss.
+    """
+
     def __init__(self, criterion, lambd=0.5, norm=1, latent_grad=False):
         super().__init__()
         self.criterion = criterion
@@ -16,6 +34,20 @@ class LossPenalty(nn.Module):
                f"latent_grad={self.latent_grad}"
 
     def forward(self, reconstructed, input, latent):
+        """
+
+        Parameters
+        ----------
+        reconstructed, input : (B, ...) torch.Tensor
+            The reconstructed input (the output of a model) and the true input.
+        latent : (B, V) torch.Tensor
+            The latent vectors.
+
+        Returns
+        -------
+        torch.Tensor
+            Reconstruction loss with a penalty, a scalar tensor.
+        """
         assert latent.ndim == 2
         loss = self.criterion(reconstructed, input)
         if not self.latent_grad:
