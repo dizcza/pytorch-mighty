@@ -5,7 +5,6 @@ import numpy as np
 import sklearn.decomposition
 import torch
 import torch.utils.data
-import torch.utils.data
 
 from mighty.monitor.mutual_info.mutual_info import MutualInfo
 from mighty.utils.constants import BATCH_SIZE, PCA_DIR
@@ -13,6 +12,26 @@ from mighty.utils.data import DataLoader
 
 
 class MutualInfoPCA(MutualInfo, ABC):
+    """
+    A base class for Mutual Information (MI) estimation followed by PCA
+    dimensionality reduction.
+
+    Parameters
+    ----------
+    data_loader : DataLoader
+        The data loader.
+    pca_size : int, optional
+        PCA dimension size.
+        Default: 100
+    debug : bool, optional
+        If True, shows more informative plots.
+        Default: False
+
+    Attributes
+    ----------
+    ignore_layers : tuple
+        A tuple to ignore layer classes to monitor for MI.
+    """
 
     def __init__(self, data_loader: DataLoader, pca_size=100, debug=False):
         """
@@ -24,7 +43,7 @@ class MutualInfoPCA(MutualInfo, ABC):
         super().__init__(data_loader=data_loader, debug=debug)
         self.pca_size = pca_size
 
-    def prepare_input_raw(self):
+    def _prepare_input_raw(self):
         inputs = []
         targets = []
         for images, labels in self.data_loader.eval(description="MutualInfo: storing raw input data"):
@@ -32,17 +51,17 @@ class MutualInfoPCA(MutualInfo, ABC):
             targets.append(labels)
         self.quantized['input'] = torch.cat(inputs, dim=0)
         self.quantized['target'] = torch.cat(targets, dim=0)
-        self.prepare_input_finished()
+        self._prepare_input_finished()
 
-    def prepare_input_finished(self):
+    def _prepare_input_finished(self):
         pass
 
     def extra_repr(self):
         return f"pca_size={self.pca_size}"
 
-    def prepare_input(self):
+    def _prepare_input(self):
         if self.pca_size is None:
-            self.prepare_input_raw()
+            self._prepare_input_raw()
             return
         images_batch, _ = self.data_loader.sample()
         batch_size = images_batch.shape[0]
@@ -64,7 +83,7 @@ class MutualInfoPCA(MutualInfo, ABC):
         self.quantized['target'] = torch.cat(targets, dim=0)
 
         self.quantized['input'] = torch.cat(inputs, dim=0)
-        self.prepare_input_finished()
+        self._prepare_input_finished()
 
     def pca_full(self):
         # memory inefficient

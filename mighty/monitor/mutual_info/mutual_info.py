@@ -14,6 +14,19 @@ from mighty.utils.hooks import get_layers_ordered
 
 
 class AccuracyFromMutualInfo:
+    """
+    Estimates the model accuracy from the mutual info I(T; Y) at layer T,
+    based on https://colab.research.google.com/drive/
+    124gIEjgF0HXOObG33R4rbpCyb5CLQ8UT#scrollTo=UbHXS3rB4IAt
+
+    Parameters
+    ----------
+    n_classes : int
+        The num. of unique classes in a dataset.
+    resolution_bins : int, optional
+        The number of resolution bins.
+        Default: 100
+    """
     def __init__(self, n_classes: int, resolution_bins=100):
         self.n_classes = n_classes
         self.accuracy_binned = np.linspace(start=1 / n_classes, stop=1,
@@ -29,8 +42,16 @@ class AccuracyFromMutualInfo:
 
     def estimate_accuracy(self, mutual_info_bits: float) -> float:
         """
-        :param mutual_info_bits: mutual information between the hidden layer T and the true class Y
-        :return: estimated layer accuracy
+
+        Parameters
+        ----------
+        mutual_info_bits : float
+            The mutual info between the hidden layer T and the true class Y.
+
+        Returns
+        -------
+        accuracy_estimated : float
+            The estimated model accuracy.
         """
         bin_id = np.digitize(mutual_info_bits, bins=self.mutual_info_binned)
         bin_id = min(bin_id, len(self.accuracy_binned) - 1)
@@ -39,6 +60,23 @@ class AccuracyFromMutualInfo:
 
 
 class MutualInfo(ABC):
+    """
+    A base class for Mutual Information (MI) estimation.
+
+    Parameters
+    ----------
+    data_loader : DataLoader
+        The data loader.
+    debug : bool, optional
+        If True, shows more informative plots.
+        Default: False
+
+    Attributes
+    ----------
+    ignore_layers : tuple
+        A tuple to ignore layer classes to monitor for MI.
+    """
+
     log2e = math.log2(math.e)
     ignore_layers = (nn.Conv2d,)  # poor estimate
 
@@ -63,14 +101,45 @@ class MutualInfo(ABC):
         return ""
 
     def register(self, layer: nn.Module, name: str):
+        """
+        Register a layer to monitor for MI.
+
+        Parameters
+        ----------
+        layer : nn.Module
+            A model layer.
+        name : str
+            Layer's name.
+        """
         if not isinstance(layer, self.ignore_layers):
             self.layer_to_name[layer] = name
 
     @staticmethod
     def to_bits(entropy_nats):
+        """
+        Converts nats to bits.
+
+        Parameters
+        ----------
+        entropy_nats : float
+            Entropy in nats.
+
+        Returns
+        -------
+        float
+            Entropy in bits.
+        """
         return entropy_nats * MutualInfo.log2e
 
     def force_update(self, model: nn.Module):
+        """
+        Force full forward pass and update the MI.
+
+        Parameters
+        ----------
+        model : nn.Module
+            A model to perform the forward pass.
+        """
         if not self.is_active:
             return
         self.start_listening()
@@ -84,12 +153,23 @@ class MutualInfo(ABC):
         self.finish_listening()
 
     @abstractmethod
-    def prepare_input(self):
+    def _prepare_input(self):
         pass
 
     def prepare(self, model: nn.Module, monitor_layers_count=1):
+        """
+        Sorts the model layers in order and selects last
+        `monitor_layers_count` layers.
+
+        Parameters
+        ----------
+        model : nn.Module
+            A model to monitor.
+        monitor_layers_count : int, optional
+            The number of last layers to monitor for MI.
+        """
         self.is_active = True  # turn on the feature
-        self.prepare_input()
+        self._prepare_input()
         images_batch, _ = self.data_loader.sample()
         image_sample = images_batch[0]
 
@@ -107,16 +187,25 @@ class MutualInfo(ABC):
               f"estimation: {monitored_layer_names}")
 
     def start_listening(self):
+        """
+        Activates model hooks to save the input and output tensors.
+        """
         self.activations.clear()
         self.is_updating = True
 
     def finish_listening(self):
+        """
+        Deactivates model hooks and processes the saved activations.
+        """
         self.is_updating = False
         for hname, activations in self.activations.items():
-            self.process_activations(layer_name=hname, activations=activations)
-        self.save_mutual_info()
+            self._process_activations(layer_name=hname, activations=activations)
+        self._save_mutual_info()
 
     def save_activations(self, module: nn.Module, tensor_input, tensor_output):
+        """
+        A hook to save the activates at a forward pass.
+        """
         if not self.is_updating:
             return
         layer_name = self.layer_to_name[module]
@@ -125,6 +214,15 @@ class MutualInfo(ABC):
         self.activations[layer_name].append(tensor_output_clone)
 
     def plot_activations_hist(self, viz):
+        """
+        Plots the activations histogram.
+
+        Parameters
+        ----------
+        viz : VisdomMighty
+            Visdom client instance.
+
+        """
         for hname, activations in self.activations.items():
             title = f'Activations histogram: {hname}'
             activations = torch.cat(activations, dim=0)
@@ -138,6 +236,14 @@ class MutualInfo(ABC):
         self.plot_activations_hist(viz)
 
     def plot(self, viz):
+        """
+        Plots the Mutual Information I(X; T) vs I(Y; T).
+
+        Parameters
+        ----------
+        viz : VisdomMighty
+            Visdom client instance.
+        """
         assert not self.is_updating, "Wait, not finished yet."
         if len(self.information) == 0:
             return
@@ -162,15 +268,24 @@ class MutualInfo(ABC):
         self.activations.clear()
 
     @abstractmethod
-    def process_activations(self, layer_name: str,
-                            activations: List[torch.FloatTensor]):
+    def _process_activations(self, layer_name: str,
+                             activations: List[torch.FloatTensor]):
         pass
 
     @abstractmethod
-    def save_mutual_info(self):
+    def _save_mutual_info(self):
         pass
 
     def estimate_accuracy(self):
+        """
+        Estimates the model accuracy from I(Y; T).
+
+        Returns
+        -------
+        accuracies : dict
+            A dict of (layer_name, layer_accuracy) estimated named layer
+            accuracies given the mutual information I(Y; T).
+        """
         accuracies = {}
         for layer_name, (info_x, info_y) in self.information.items():
             accuracies[layer_name] = self.accuracy_estimator.estimate_accuracy(

@@ -121,36 +121,49 @@ def build_tree(points):
 
 class MutualInfoNPEET(MutualInfoPCA):
     """
-    Kraskov mutual information estimation.
+    Kraskov Mutual Information Estimation, followed by PCA dimensionality
+    reduction.
+
+    Parameters
+    ----------
+    data_loader : DataLoader
+        The data loader.
+    pca_size : int, optional
+        PCA dimension size.
+        Default: 100
+    debug : bool, optional
+        If True, shows more informative plots.
+        Default: False
+
+    Attributes
+    ----------
+    ignore_layers : tuple
+        A tuple to ignore layer classes to monitor for MI.
+
     """
 
-    def __init__(self, data_loader: DataLoader, pca_size=100, debug=False):
-        """
-        :param estimate_size: number of samples to estimate mutual information from
-        :param pca_size: transform input data to this size;
-                               pass None to use original raw input data (no transformation is applied)
-        :param debug: plot MINE training curves?
-        """
-        super().__init__(data_loader=data_loader, pca_size=pca_size, debug=debug)
-
-    def prepare_input_finished(self):
+    def _prepare_input_finished(self):
         self.quantized['input'] = (self.quantized['input'] -
-                                   self.quantized['input'].mean()) / self.quantized['input'].std()
+                                   self.quantized['input'].mean()) / \
+                                  self.quantized['input'].std()
         for key in ['input', 'target']:
             self.quantized[key] = self.quantized[key].numpy()
 
-    def process_activations(self, layer_name: str, activations: List[torch.FloatTensor]):
+    def _process_activations(self, layer_name: str,
+                             activations: List[torch.FloatTensor]):
         pass
 
-    def save_mutual_info(self):
+    def _save_mutual_info(self):
         hidden_layers_name = set(self.activations.keys())
         hidden_layers_name.difference_update({'input', 'target'})
         for layer_name in hidden_layers_name:
             activations = torch.cat(self.activations[layer_name]).numpy()
-            if self.pca_size is not None and activations.shape[-1] > self.pca_size:
+            if self.pca_size is not None \
+                    and activations.shape[-1] > self.pca_size:
                 pca = sklearn.decomposition.PCA(n_components=self.pca_size)
                 activations = pca.fit_transform(activations)
-            activations = (activations - activations.mean()) / activations.std()
+            activations = (activations -
+                           activations.mean()) / activations.std()
             info_x = mi(self.quantized['input'], activations, k=4)
             info_y = micd(activations, self.quantized['target'], k=4)
             self.information[layer_name] = (info_x, info_y)

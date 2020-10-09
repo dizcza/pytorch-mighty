@@ -13,6 +13,26 @@ from mighty.utils.data import DataLoader
 
 
 class MutualInfoIDTxl(MutualInfoPCA):
+    """
+    IDTxl Mutual Information Estimator followed by PCA dimensionality
+    reduction.
+
+    Parameters
+    ----------
+    data_loader : DataLoader
+        The data loader.
+    pca_size : int, optional
+        PCA dimension size.
+        Default: 100
+    debug : bool, optional
+        If True, shows more informative plots.
+        Default: False
+
+    Attributes
+    ----------
+    ignore_layers : tuple
+        A tuple to ignore layer classes to monitor for MI.
+    """
 
     def __init__(self, data_loader: DataLoader, pca_size=50, debug=False):
         super().__init__(data_loader=data_loader, pca_size=pca_size, debug=debug)
@@ -25,14 +45,14 @@ class MutualInfoIDTxl(MutualInfoPCA):
                           "in a terminal.")
             self.estimator = JidtKraskovMI(settings=settings)
 
-    def prepare_input_finished(self):
+    def _prepare_input_finished(self):
         for key in ['input', 'target']:
             self.quantized[key] = self.quantized[key].numpy().astype(np.float64)
 
-    def process_activations(self, layer_name: str, activations: List[torch.FloatTensor]):
+    def _process_activations(self, layer_name: str, activations: List[torch.FloatTensor]):
         pass
 
-    def save_mutual_info(self):
+    def _save_mutual_info(self):
         hidden_layers_name = set(self.activations.keys())
         hidden_layers_name.difference_update({'input', 'target'})
         for layer_name in hidden_layers_name:

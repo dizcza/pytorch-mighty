@@ -139,17 +139,41 @@ class MINE_Trainer:
 
 
 class MutualInfoNeuralEstimation(MutualInfoPCA):
+    """
+    Mutual Information Neural Estimation [1]_ followed by PCA dimensionality
+    reduction.
+
+    Parameters
+    ----------
+    data_loader : DataLoader
+        The data loader.
+    pca_size : int, optional
+        PCA dimension size.
+        Default: 100
+    estimate_epochs : int, optional
+        The number of epochs to run.
+        Default: 5
+    noise_std : float, optional
+        Additive noise standard deviation (to break the degeneracy).
+        Default: 1e-3
+    debug : bool, optional
+        If True, shows more informative plots.
+        Default: False
+
+    Attributes
+    ----------
+    ignore_layers : tuple
+        A tuple to ignore layer classes to monitor for MI.
+
+    References
+    ----------
+    1. Belghazi, M. I., Baratin, A., Rajeswar, S., Ozair, S., Bengio, Y.,
+       Courville, A., & Hjelm, R. D. (2018). Mine: mutual information neural
+       estimation. arXiv preprint arXiv:1801.04062.
+    """
 
     def __init__(self, data_loader: DataLoader, pca_size=100, debug=False,
                  estimate_epochs=5, noise_std=1e-3):
-        """
-        :param estimate_size: number of samples to estimate mutual information from
-        :param estimate_epochs: total estimation epochs to run
-        :param pca_size: transform input data to this size;
-                               pass None to use original raw input data (no transformation is applied)
-        :param noise_std: how much noise to add to input and targets
-        :param debug: plot MINE training curves?
-        """
         super().__init__(data_loader=data_loader, pca_size=pca_size,
                          debug=debug)
         self.estimate_epochs = estimate_epochs
@@ -162,15 +186,15 @@ class MutualInfoNeuralEstimation(MutualInfoPCA):
     def extra_repr(self):
         return f"{super().extra_repr()}; noise_variance={self.noise_sampler.variance}; "
 
-    def prepare_input_finished(self):
+    def _prepare_input_finished(self):
         self.input_size = self.quantized['input'].shape[1]
         self.target_size = len(self.quantized['target'].unique())
         # one-hot encoded labels are better fit than argmax
         self.quantized['target'] = to_onehot(self.quantized['target']).type(
             torch.float32)
 
-    def process_activations(self, layer_name: str,
-                            activations: List[torch.FloatTensor]):
+    def _process_activations(self, layer_name: str,
+                             activations: List[torch.FloatTensor]):
         # TODO process each batch in save_activations()
         activations = torch.cat(activations, dim=0)
         assert len(self.quantized['input']) == len(
@@ -199,13 +223,16 @@ class MutualInfoNeuralEstimation(MutualInfoPCA):
             for mi_trainer in self.trainers[layer_name]:
                 mi_trainer.scheduler.step()
 
-    def save_mutual_info(self):
+    def _save_mutual_info(self):
         for layer_name, (trainer_x, trainer_y) in self.trainers.items():
             info_x = trainer_x.get_mutual_info()
             info_y = trainer_y.get_mutual_info()
             self.information[layer_name] = (info_x, info_y)
 
     def plot_mine_history_loss(self, viz):
+        """
+        Plots the loss of a training progress with iterations.
+        """
         legend = []
         info_x = []
         info_y = []

@@ -1,8 +1,13 @@
 import torch.nn as nn
 
+from mighty.monitor.mutual_info.mutual_info import MutualInfo
 
-class MutualInfoStub:
+
+class MutualInfoStub(MutualInfo):
     # Stub to work with the Monitor
+
+    def __init__(self):
+        pass
 
     def __repr__(self):
         return f"{self.__class__.__name__}()"

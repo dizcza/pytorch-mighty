@@ -211,23 +211,14 @@ class MutualInfoGCMI(MutualInfoPCA):
     Gaussian-Copula Mutual Information estimation.
     """
 
-    def __init__(self, estimate_size=None, pca_size=100, debug=False):
-        """
-        :param estimate_size: number of samples to estimate mutual information from
-        :param pca_size: transform input data to this size;
-                               pass None to use original raw input data (no transformation is applied)
-        :param debug: plot MINE training curves?
-        """
-        super().__init__(estimate_size=estimate_size, pca_size=pca_size, debug=debug)
-
-    def prepare_input_finished(self):
+    def _prepare_input_finished(self):
         for key in ['input', 'target']:
             self.quantized[key] = self.quantized[key].numpy().T
 
-    def process_activations(self, layer_name: str, activations: List[torch.FloatTensor]):
+    def _process_activations(self, layer_name: str, activations: List[torch.FloatTensor]):
         pass
 
-    def save_mutual_info(self):
+    def _save_mutual_info(self):
         hidden_layers_name = set(self.activations.keys())
         hidden_layers_name.difference_update({'input', 'target'})
         for layer_name in hidden_layers_name:

@@ -17,23 +17,33 @@ class MutualInfoKMeans(MutualInfo):
     """
     Classical binning approach to estimate the mutual information.
     KMeans is used to cluster the data.
+
+    Parameters
+    ----------
+    data_loader : DataLoader
+        The data loader.
+    n_bins : int, optional
+        The number of clusters.
+        Default: 20
+    debug : bool, optional
+        If True, shows more informative plots.
+        Default: False
+
+    Attributes
+    ----------
+    ignore_layers : tuple
+        A tuple to ignore layer classes to monitor for MI.
+
     """
 
     def __init__(self, data_loader: DataLoader, n_bins=20, debug=False):
-        """
-        :param estimate_size: number of samples to estimate mutual information from
-        :param n_bins: how many bins to use? This value should be no less than the number of classes.
-                       But if the estimate_size per bin (or rather class) is small, estimation suffers.
-                       Setting n_bins to None means it'll be calculated as the number of distinct labels/targets.
-        :param debug: plot bins distribution?
-        """
         super().__init__(data_loader=data_loader, debug=debug)
         self.n_bins = n_bins
 
     def extra_repr(self):
         return f"n_bins={self.n_bins}"
 
-    def prepare_input(self):
+    def _prepare_input(self):
         targets = []
         classifier = cluster.MiniBatchKMeans(n_clusters=self.n_bins,
                                              batch_size=BATCH_SIZE,
@@ -58,12 +68,12 @@ class MutualInfoKMeans(MutualInfo):
             unique_targets = np.unique(self.quantized['target'])
             self.n_bins = len(unique_targets)
 
-    def process_activations(self, layer_name: str, activations: List[torch.FloatTensor]):
+    def _process_activations(self, layer_name: str, activations: List[torch.FloatTensor]):
         assert self.n_bins is not None, "Set n_bins manually"
         activations = torch.cat(activations, dim=0)
-        self.quantized[layer_name] = self.quantize(activations)
+        self.quantized[layer_name] = self._quantize(activations)
 
-    def save_mutual_info(self):
+    def _save_mutual_info(self):
         hidden_layers_name = set(self.quantized.keys())
         hidden_layers_name.difference_update({'input', 'target'})
         for layer_name in hidden_layers_name:
@@ -75,7 +85,7 @@ class MutualInfoKMeans(MutualInfo):
     def compute_mutual_info(x, y) -> float:
         return MutualInfo.to_bits(mutual_info_score(x, y))
 
-    def quantize(self, activations: torch.FloatTensor) -> np.ndarray:
+    def _quantize(self, activations: torch.FloatTensor) -> np.ndarray:
         model = cluster.MiniBatchKMeans(n_clusters=self.n_bins, batch_size=BATCH_SIZE)
         labels = model.fit_predict(activations)
         return labels
