@@ -123,7 +123,7 @@ class MINE_Trainer:
         loss.backward()
         self.optimizer.step()
 
-    def _smooth(self):
+    def smooth_history(self):
         history = np.array(self.mi_history)[~np.isnan(self.mi_history)]
         return exponential_moving_average(history,
                                           window=self.smooth_filter_size)
@@ -135,7 +135,7 @@ class MINE_Trainer:
         float
             Estimated mutual information lower bound.
         """
-        return self._smooth().max()
+        return self.smooth_history().max()
 
 
 class MutualInfoNeuralEstimation(MutualInfoPCA):
@@ -237,8 +237,8 @@ class MutualInfoNeuralEstimation(MutualInfoPCA):
         info_x = []
         info_y = []
         for layer_name, (trainer_x, trainer_y) in self.trainers.items():
-            info_x.append(trainer_x._smooth())
-            info_y.append(trainer_y._smooth())
+            info_x.append(trainer_x.smooth_history())
+            info_y.append(trainer_y.smooth_history())
             legend.append(layer_name)
         for info_name, info in (('input X', info_x), ('target Y', info_y)):
             info = np.transpose(info).squeeze()

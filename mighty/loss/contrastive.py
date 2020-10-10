@@ -97,34 +97,6 @@ class PairLoss(nn.Module, ABC):
         return compute_distance(input1=input1, input2=input2,
                                 metric=self.metric, dim=1)
 
-    def forward_mean(self, outputs, labels):
-        """
-        Computes contrastive loss on the centroids only. The centroids are
-        defined as the mean of `outputs` for each class in `labels`.
-
-        Parameters
-        ----------
-        outputs : (B, N) torch.Tensor
-            Embedding vectors.
-        labels : (B,) torch.LongTensor
-            Embedding true labels.
-
-        Returns
-        -------
-        loss : torch.Tensor
-            A scalar loss.
-        """
-        labels_unique = labels.unique(sorted=True).tolist()
-        outputs_mean = []
-        for label in labels_unique:
-            outputs_mean.append(outputs[labels == label].mean(dim=0))
-        outputs_mean = torch.stack(outputs_mean)
-        loss = 0
-        for label_id, label_same in enumerate(labels_unique[:-1]):
-            outputs_same = outputs_mean[label_same].unsqueeze(dim=0)
-            dist = self.distance(outputs_same, outputs_mean[label_id + 1:])
-            loss = loss + dist.mean()
-        return loss
 
     def pairs_to_sample(self, labels):
         """
@@ -281,13 +253,7 @@ class ContrastiveLossRandom(PairLoss):
         loss_other = self.take_hardest(loss_other)
         loss_other = torch.relu(loss_other).mean()
 
-        if self.mean_loss_coef > 0:
-            loss_mean = self.mean_loss_coef * self.forward_mean(outputs,
-                                                                labels)
-        else:
-            loss_mean = 0
-
-        loss = loss_same + loss_other + loss_mean
+        loss = loss_same + loss_other
 
         return loss
 

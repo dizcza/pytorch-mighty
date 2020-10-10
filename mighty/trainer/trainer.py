@@ -62,6 +62,11 @@ class Trainer(ABC):
     ----------
     1. Shwartz-Ziv, R., & Tishby, N. (2017). Opening the black box of deep
        neural networks via information. arXiv preprint arXiv:1703.00810.
+
+    Notes
+    -----
+    For the choice of `mutual_info` refer to
+    https://github.com/dizcza/entropy-estimators
     """
 
     watch_modules = (nn.Linear, nn.Conv2d, MLP)
