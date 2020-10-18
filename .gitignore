@@ -6,6 +6,7 @@ ignored/
 *.pyc
 *.lprof
 *.egg-info/
+*.coverage
 dist/
 build/
 visdom_logs/

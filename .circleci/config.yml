@@ -20,15 +20,22 @@ jobs:
            conda create -n mighty python=3.6 scikit-learn tqdm scipy
            conda activate mighty
            conda install pytorch torchvision cpuonly -c pytorch
+
+           conda install -c conda-forge scipy h5py ecos jpype1 pyopencl intel-compute-runtime
+           pip install https://github.com/pwollstadt/IDTxl/archive/v1.1.tar.gz
+
            pip list
            pip -V
          name: conda-install
       - run: pip install -r requirements.txt
+      - run: pip install coveralls nose
       - python/save-cache:
           key: conda
       - run:
-          command: python -m unittest discover -s mighty/tests
-          name: Test
+          command: |
+            nosetests --with-coverage --cover-package=mighty mighty/tests
+            coveralls
+          name: Test & coverage
 
   build-pip:
     executor: python/default
@@ -39,10 +46,7 @@ jobs:
       - run: pip install -r requirements.txt
       - python/save-cache:
           key: pip
-      - python/dist
-      - run:
-          command: python -m unittest discover -s mighty/tests
-          name: Test
+      - run: nosetests --with-coverage --cover-package=mighty mighty/tests
 
 workflows:
   main:

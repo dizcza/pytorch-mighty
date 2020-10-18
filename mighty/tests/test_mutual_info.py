@@ -10,6 +10,11 @@ from mighty.monitor.viz import VisdomMighty
 from mighty.utils.data import DataLoader
 from mighty.utils.common import set_seed
 
+try:
+    from mighty.monitor.mutual_info.idtxl import MutualInfoIDTxl
+except ImportError:
+    from mighty.monitor.mutual_info import MutualInfoStub as MutualInfoIDTxl
+
 
 class TestMutualInfoNPEET(unittest.TestCase):
 
@@ -67,6 +72,7 @@ class TestMutualInfoGCMI(TestMutualInfoNPEET):
         assert_array_less(3, mi_no_pca)
 
 
+@unittest.skipIf(MutualInfoIDTxl is MutualInfoStub, "idtxl is not installed")
 class TestMutualInfoIDTxl(TestMutualInfoNPEET):
     def _init_mutual_info(self, pca_size):
         return MutualInfoIDTxl(data_loader=self.data_loader,
