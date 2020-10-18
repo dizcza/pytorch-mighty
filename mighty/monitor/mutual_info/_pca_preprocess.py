@@ -34,19 +34,14 @@ class MutualInfoPCA(MutualInfo, ABC):
     """
 
     def __init__(self, data_loader: DataLoader, pca_size=100, debug=False):
-        """
-        :param estimate_size: number of samples to estimate mutual information from
-        :param pca_size: transform input data to this size;
-                               pass None to use original raw input data (no transformation is applied)
-        :param debug: plot bins distribution?
-        """
         super().__init__(data_loader=data_loader, debug=debug)
         self.pca_size = pca_size
 
     def _prepare_input_raw(self):
         inputs = []
         targets = []
-        for images, labels in self.data_loader.eval(description="MutualInfo: storing raw input data"):
+        for images, labels in self.data_loader.eval(
+                description="MutualInfo: storing raw input data"):
             inputs.append(images.flatten(start_dim=1))
             targets.append(labels)
         self.quantized['input'] = torch.cat(inputs, dim=0)
@@ -73,11 +68,11 @@ class MutualInfoPCA(MutualInfo, ABC):
 
         inputs = []
         targets = []
-        for images, labels in self.data_loader.eval(description="MutualInfo: Applying PCA to input data. Stage 2"):
+        for images, labels in self.data_loader.eval(
+                description="MutualInfo: Applying PCA to input data. Stage 2"):
             images = images.flatten(start_dim=1)
             images_transformed = pca.transform(images)
-            images_transformed = torch.from_numpy(images_transformed).type(
-                torch.float32)
+            images_transformed = torch.from_numpy(images_transformed).float()
             inputs.append(images_transformed)
             targets.append(labels)
         self.quantized['target'] = torch.cat(targets, dim=0)
@@ -86,7 +81,14 @@ class MutualInfoPCA(MutualInfo, ABC):
         self._prepare_input_finished()
 
     def pca_full(self):
-        # memory inefficient
+        """
+        Perform PCA transformation on all data at once.
+
+        Returns
+        -------
+        pca: sklearn.decomposition.PCA
+            Trained PCA model.
+        """
         dataset_name = self.data_loader.dataset_cls.__name__
         pca_path = PCA_DIR.joinpath(dataset_name, f"dim-{self.pca_size}.pkl")
         if not pca_path.exists():
@@ -103,9 +105,19 @@ class MutualInfoPCA(MutualInfo, ABC):
         return pca
 
     def pca_incremental(self):
-        pca = sklearn.decomposition.IncrementalPCA(
-            n_components=self.pca_size, copy=False, batch_size=BATCH_SIZE)
-        for images, _ in self.data_loader.eval(description="MutualInfo: Applying PCA to input data. Stage 1"):
+        """
+        Memory efficient Incremental PCA performs the transformation batch-wise
+
+        Returns
+        -------
+        pca: sklearn.decomposition.IncrementalPCA
+            Trained PCA model.
+        """
+        pca = sklearn.decomposition.IncrementalPCA(n_components=self.pca_size,
+                                                   copy=False,
+                                                   batch_size=BATCH_SIZE)
+        for images, _ in self.data_loader.eval(
+                description="MutualInfo: Applying PCA to input data. Stage 1"):
             if images.shape[0] < self.pca_size:
                 # drop the last batch if it's smaller
                 continue

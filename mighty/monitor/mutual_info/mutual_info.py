@@ -8,7 +8,7 @@ import torch
 import torch.nn as nn
 import torch.utils.data
 
-from mighty.utils.common import clone_cpu
+from mighty.utils.common import clone_cpu, find_named_layers, find_layers
 from mighty.utils.data import DataLoader
 from mighty.utils.hooks import get_layers_ordered
 
@@ -78,7 +78,6 @@ class MutualInfo(ABC):
     """
 
     log2e = math.log2(math.e)
-    ignore_layers = (nn.Conv2d,)  # poor estimate
 
     def __init__(self, data_loader: DataLoader, debug=False):
         """
@@ -100,7 +99,7 @@ class MutualInfo(ABC):
     def extra_repr(self):
         return ""
 
-    def register(self, layer: nn.Module, name: str):
+    def register_layer(self, layer: nn.Module, name: str):
         """
         Register a layer to monitor for MI.
 
@@ -111,8 +110,8 @@ class MutualInfo(ABC):
         name : str
             Layer's name.
         """
-        if not isinstance(layer, self.ignore_layers):
-            self.layer_to_name[layer] = name
+        self.layer_to_name[layer] = name
+        layer.register_forward_hook(self.save_activations)
 
     @staticmethod
     def to_bits(entropy_nats):
@@ -156,7 +155,8 @@ class MutualInfo(ABC):
     def _prepare_input(self):
         pass
 
-    def prepare(self, model: nn.Module, monitor_layers_count=1):
+    def prepare(self, model: nn.Module, monitor_layers=(nn.Linear,),
+                monitor_layers_count=1):
         """
         Sorts the model layers in order and selects last
         `monitor_layers_count` layers.
@@ -173,18 +173,19 @@ class MutualInfo(ABC):
         images_batch, _ = self.data_loader.sample()
         image_sample = images_batch[0]
 
+        layers_of_interest = set(find_layers(model,
+                                             layer_class=monitor_layers))
         layers_ordered = get_layers_ordered(model, image_sample)
-        layers_ordered = list(layer for layer in layers_ordered
-                              if layer in self.layer_to_name)
+        layers_ordered = [layer for layer in layers_ordered
+                          if layer in layers_of_interest]
         layers_ordered = layers_ordered[-monitor_layers_count:]
+        for name, layer in find_named_layers(model,
+                                             layer_class=monitor_layers):
+            if layer in layers_ordered:
+                self.register_layer(layer=layer, name=name)
 
-        for layer in layers_ordered:
-            layer.register_forward_hook(self.save_activations)
-
-        monitored_layer_names = tuple(self.layer_to_name[layer]
-                                      for layer in layers_ordered)
         print(f"Monitoring only these last layers for mutual information "
-              f"estimation: {monitored_layer_names}")
+              f"estimation: {list(self.layer_to_name.values())}")
 
     def start_listening(self):
         """
@@ -209,7 +210,7 @@ class MutualInfo(ABC):
         if not self.is_updating:
             return
         layer_name = self.layer_to_name[module]
-        tensor_output_clone = clone_cpu(tensor_output)
+        tensor_output_clone = clone_cpu(tensor_output.detach())
         tensor_output_clone = tensor_output_clone.flatten(start_dim=1)
         self.activations[layer_name].append(tensor_output_clone)
 

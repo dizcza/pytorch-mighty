@@ -354,7 +354,6 @@ class Monitor:
             precord.reset()
 
     def register_layer(self, layer: nn.Module, prefix: str):
-        self.mutual_info.register(layer, name=prefix)
         for name, param in layer.named_parameters(prefix=prefix):
             if param.requires_grad and not name.endswith('.bias'):
                 self.param_records[name] = ParamRecord(

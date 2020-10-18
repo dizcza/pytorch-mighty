@@ -12,7 +12,7 @@ class MutualInfoStub(MutualInfo):
     def __repr__(self):
         return f"{self.__class__.__name__}()"
 
-    def register(self, layer: nn.Module, name: str):
+    def register_layer(self, layer: nn.Module, name: str):
         pass
 
     def start_listening(self):
@@ -25,4 +25,13 @@ class MutualInfoStub(MutualInfo):
         pass
 
     def plot(self, viz):
+        pass
+
+    def _prepare_input(self):
+        pass
+
+    def _process_activations(self, layer_name: str, activations):
+        pass
+
+    def _save_mutual_info(self):
         pass

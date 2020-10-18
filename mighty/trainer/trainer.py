@@ -578,7 +578,10 @@ class Trainer(ABC):
 
         if mutual_info_layers > 0 and not isinstance(self.mutual_info,
                                                      MutualInfoStub):
+            # Mutual Information in conv layers are poorly estimated
+            monitor_classes = set(self.watch_modules).difference({nn.Conv2d})
             self.mutual_info.prepare(model=self.model,
+                                     monitor_layers=monitor_classes,
                                      monitor_layers_count=mutual_info_layers)
 
         loss_epochs = []

@@ -173,10 +173,11 @@ class MutualInfoNeuralEstimation(MutualInfoPCA):
     """
 
     def __init__(self, data_loader: DataLoader, pca_size=100, debug=False,
-                 estimate_epochs=5, noise_std=1e-3):
+                 hidden_units=(100, 50), estimate_epochs=5, noise_std=1e-3):
         super().__init__(data_loader=data_loader, pca_size=pca_size,
                          debug=debug)
         self.estimate_epochs = estimate_epochs
+        self.hidden_units = hidden_units
         self.noise_sampler = torch.distributions.normal.Normal(loc=0,
                                                                scale=noise_std)
         self.trainers = {}  # MutualInformationNeuralEstimation trainers for both input X- and target Y-data
@@ -203,9 +204,11 @@ class MutualInfoNeuralEstimation(MutualInfoPCA):
         if layer_name not in self.trainers:
             self.trainers[layer_name] = (
                 MINE_Trainer(MINE_Net(x_size=embedding_size,
-                                      y_size=self.input_size)),
+                                      y_size=self.input_size,
+                                      hidden_units=self.hidden_units)),
                 MINE_Trainer(MINE_Net(x_size=embedding_size,
-                                      y_size=self.target_size)),
+                                      y_size=self.target_size,
+                                      hidden_units=self.hidden_units)),
             )
         for mi_trainer in self.trainers[layer_name]:
             mi_trainer.reset()
