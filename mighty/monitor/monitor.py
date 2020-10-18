@@ -332,8 +332,6 @@ class Monitor:
             ))
 
     def update_mutual_info(self):
-        # for layer_name, estimated_accuracy in self.mutual_info.estimate_accuracy().items():
-        #     self.update_accuracy(accuracy=estimated_accuracy, mode=layer_name)
         self.mutual_info.plot(self.viz)
 
     def epoch_finished(self):

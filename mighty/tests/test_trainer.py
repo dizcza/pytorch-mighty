@@ -1,14 +1,16 @@
 import os
 import unittest
 
+import numpy as np
 import torch
 import torch.nn as nn
-from numpy.testing import assert_array_almost_equal
+from numpy.testing import assert_array_almost_equal, assert_array_less
 from torchvision.datasets import MNIST
 
 from mighty.loss import *
 from mighty.models import MLP, AutoencoderLinear
 from mighty.monitor.accuracy import AccuracyEmbedding
+from mighty.monitor.mutual_info import MutualInfoNPEET
 from mighty.trainer import *
 from mighty.utils.common import set_seed
 from mighty.utils.data import TransformDefault, DataLoader
@@ -44,6 +46,34 @@ class TrainerTestCase(unittest.TestCase):
                               scheduler=self.scheduler)
         loss_epochs = trainer.train(n_epochs=1, mutual_info_layers=0)
         assert_array_almost_equal(loss_epochs, [0.2287357747])
+
+    def test_TrainerGrad_MutualInfo(self):
+        set_seed(2)
+        mi_history = []
+
+        class MutualInfoNPEETDebug(MutualInfoNPEET):
+            def plot(self_mi, viz):
+                mi_history.append(self_mi.information['mlp.2'])
+                super().plot(viz)
+
+        data_loader = DataLoader(MNIST, eval_size=100,
+                                 transform=TransformDefault.mnist())
+        trainer = TrainerGrad(self.model,
+                              criterion=nn.CrossEntropyLoss(),
+                              data_loader=data_loader,
+                              optimizer=self.optimizer,
+                              mutual_info=MutualInfoNPEETDebug(
+                                  data_loader=data_loader, pca_size=None),
+                              scheduler=self.scheduler)
+        trainer.train(n_epochs=1, mutual_info_layers=1)
+        mi_history = np.vstack(mi_history)
+        assert_array_less(0, mi_history)
+        x_last, y_last = mi_history[-1]
+
+        # the model is well trained
+        self.assertGreater(y_last, 2.5)
+        self.assertGreater(x_last, 2.2)
+        self.assertLessEqual(x_last, y_last)
 
     def test_TrainerEmbedding(self):
         set_seed(3)
