@@ -1,7 +1,6 @@
 import os
 import unittest
 
-import psutil
 import torch
 import torch.nn as nn
 from numpy.testing import assert_array_almost_equal
@@ -26,10 +25,8 @@ class TrainerTestCase(unittest.TestCase):
     def setUp(self):
         set_seed(1)
         self.model = MLP(784, 64, 10)
-        cpu_count = psutil.cpu_count(logical=False)
         self.data_loader = DataLoader(MNIST, eval_size=10000,
-                                      transform=TransformDefault.mnist(),
-                                      num_workers=cpu_count)
+                                      transform=TransformDefault.mnist())
 
         self.optimizer = torch.optim.Adam(
             filter(lambda param: param.requires_grad, self.model.parameters()),
