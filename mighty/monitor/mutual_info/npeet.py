@@ -143,6 +143,7 @@ class MutualInfoNPEET(MutualInfoPCA):
     """
 
     def _prepare_input_finished(self):
+        super()._prepare_input_finished()
         self.quantized['input'] = (self.quantized['input'] -
                                    self.quantized['input'].mean()) / \
                                   self.quantized['input'].std()

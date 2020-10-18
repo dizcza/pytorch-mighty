@@ -44,6 +44,7 @@ jobs:
       - python/load-cache:
           key: pip
       - run: pip install -r requirements.txt
+      - run: pip install nose
       - python/save-cache:
           key: pip
       - run: nosetests --with-coverage --cover-package=mighty mighty/tests

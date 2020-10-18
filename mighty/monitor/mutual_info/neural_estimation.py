@@ -188,6 +188,7 @@ class MutualInfoNeuralEstimation(MutualInfoPCA):
         return f"{super().extra_repr()}; noise_variance={self.noise_sampler.variance}; "
 
     def _prepare_input_finished(self):
+        super()._prepare_input_finished()
         self.input_size = self.quantized['input'].shape[1]
         self.target_size = len(self.quantized['target'].unique())
         # one-hot encoded labels are better fit than argmax

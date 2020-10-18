@@ -155,6 +155,10 @@ class MutualInfo(ABC):
     def _prepare_input(self):
         pass
 
+    def _prepare_input_finished(self):
+        n_classes = len(np.unique(self.quantized['target']))
+        self.accuracy_estimator = AccuracyFromMutualInfo(n_classes=n_classes)
+
     def prepare(self, model: nn.Module, monitor_layers=(nn.Linear,),
                 monitor_layers_count=1):
         """
@@ -170,6 +174,7 @@ class MutualInfo(ABC):
         """
         self.is_active = True  # turn on the feature
         self._prepare_input()
+        self._prepare_input_finished()
         images_batch, _ = self.data_loader.sample()
         image_sample = images_batch[0]
 

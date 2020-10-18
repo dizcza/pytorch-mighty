@@ -46,10 +46,6 @@ class MutualInfoPCA(MutualInfo, ABC):
             targets.append(labels)
         self.quantized['input'] = torch.cat(inputs, dim=0)
         self.quantized['target'] = torch.cat(targets, dim=0)
-        self._prepare_input_finished()
-
-    def _prepare_input_finished(self):
-        pass
 
     def extra_repr(self):
         return f"pca_size={self.pca_size}"
@@ -78,7 +74,6 @@ class MutualInfoPCA(MutualInfo, ABC):
         self.quantized['target'] = torch.cat(targets, dim=0)
 
         self.quantized['input'] = torch.cat(inputs, dim=0)
-        self._prepare_input_finished()
 
     def pca_full(self):
         """

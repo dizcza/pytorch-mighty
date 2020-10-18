@@ -1,4 +1,5 @@
 import unittest
+import math
 
 from numpy.testing import assert_array_almost_equal, assert_array_less
 from torchvision.datasets import MNIST
@@ -18,18 +19,19 @@ except ImportError:
 
 class TestMutualInfoNPEET(unittest.TestCase):
 
-    def setUp(self):
+    @classmethod
+    def setUpClass(cls):
         imsize = 5
         transform = Compose([Resize(imsize), ToTensor()])
-        self.data_loader = DataLoader(dataset_cls=MNIST, transform=transform,
-                                      batch_size=20, eval_size=1000)
-        self.model = MLP(imsize ** 2, 10)
-        self.viz = VisdomMighty(env='test', offline=True)
+        cls.data_loader = DataLoader(dataset_cls=MNIST, transform=transform,
+                                     batch_size=20, eval_size=1000)
+        cls.model = MLP(imsize ** 2, 10)
+        cls.viz = VisdomMighty(env='test', offline=True)
 
-        self.mi_instance_no_pca = self._init_mutual_info(pca_size=None)
-        self.mi_instance_no_pca.prepare(self.model)
-        self.mi_instance_pca = self._init_mutual_info(pca_size=20)
-        self.mi_instance_pca.prepare(self.model)
+    def setUp(self):
+        set_seed(0)
+        self.mi_instance = self._init_mutual_info(pca_size=None)
+        self.mi_instance.prepare(self.model)
 
     def _init_mutual_info(self, pca_size):
         return MutualInfoNPEET(data_loader=self.data_loader,
@@ -39,11 +41,14 @@ class TestMutualInfoNPEET(unittest.TestCase):
         assert_array_almost_equal(mi_pca, mi_no_pca, decimal=0)
 
     def test_force_update(self):
-        set_seed(0)
-        self.mi_instance_no_pca.force_update(self.model)
-        self.mi_instance_pca.force_update(self.model)
-        mi_no_pca = self.mi_instance_no_pca.information
-        mi_pca = self.mi_instance_pca.information
+        set_seed(1)
+        mi_instance_pca = self._init_mutual_info(pca_size=20)
+        mi_instance_pca.prepare(self.model)
+
+        self.mi_instance.force_update(self.model)
+        mi_instance_pca.force_update(self.model)
+        mi_no_pca = self.mi_instance.information
+        mi_pca = mi_instance_pca.information
         self.assertEqual(mi_pca.keys(), mi_no_pca.keys())
         for mi_layers_dict in (mi_pca, mi_no_pca):
             for mi_x, mi_y in mi_layers_dict.values():
@@ -53,8 +58,8 @@ class TestMutualInfoNPEET(unittest.TestCase):
         for layer_name in mi_pca.keys():
             self._test_estimated_values(mi_pca[layer_name],
                                         mi_no_pca[layer_name])
-        self.mi_instance_pca.plot(self.viz)
-        self.mi_instance_pca.plot_activations_hist(self.viz)
+        mi_instance_pca.plot(self.viz)
+        mi_instance_pca.plot_activations_hist(self.viz)
 
 
 class TestMutualInfoGCMI(TestMutualInfoNPEET):
@@ -89,6 +94,19 @@ class TestMutualInfoNeuralEstimation(TestMutualInfoNPEET):
     def _init_mutual_info(self, pca_size):
         return MutualInfoNeuralEstimation(data_loader=self.data_loader,
                                           pca_size=pca_size, debug=True)
+
+    # Don't double-test the same functional
+    def test_estimate_accuracy(self):
+        n_classes = self.mi_instance.accuracy_estimator.n_classes
+        info_y_layerA = 0.
+        info_y_layerB = math.log2(n_classes)
+        self.mi_instance.information = dict(layerA=(0., info_y_layerA), layerB=(0., info_y_layerB))
+        accuracies = self.mi_instance.estimate_accuracy()
+        # low I(X; T) corresponds to random accuracy
+        self.assertAlmostEqual(accuracies['layerA'], 1 / n_classes, places=1)
+        # the largest I(Y; T) is log2(n_classes) that corresponds to 100 %
+        # accuracy
+        self.assertAlmostEqual(accuracies['layerB'], 1.0, places=1)
 
 
 if __name__ == '__main__':
