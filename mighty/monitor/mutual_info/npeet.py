@@ -121,8 +121,8 @@ def build_tree(points):
 
 class MutualInfoNPEET(MutualInfoPCA):
     """
-    Kraskov Mutual Information Estimation, followed by PCA dimensionality
-    reduction.
+    Non-parametric Kraskov-like Mutual Information Estimator [1]_, followed by
+    PCA dimensionality reduction.
 
     Parameters
     ----------
@@ -139,6 +139,10 @@ class MutualInfoNPEET(MutualInfoPCA):
     ----------
     ignore_layers : tuple
         A tuple to ignore layer classes to monitor for MI.
+
+    References
+    ----------
+    1. https://github.com/gregversteeg/NPEET
 
     """
 

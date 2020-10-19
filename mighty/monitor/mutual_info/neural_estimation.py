@@ -140,7 +140,7 @@ class MINE_Trainer:
 
 class MutualInfoNeuralEstimation(MutualInfoPCA):
     """
-    Mutual Information Neural Estimation [1]_ followed by PCA dimensionality
+    Mutual Information Neural Estimation [1]_, followed by PCA dimensionality
     reduction.
 
     Parameters

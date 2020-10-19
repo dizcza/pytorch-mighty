@@ -14,7 +14,7 @@ from mighty.utils.data import DataLoader
 
 class MutualInfoIDTxl(MutualInfoPCA):
     """
-    IDTxl Mutual Information Estimator followed by PCA dimensionality
+    IDTxl Mutual Information Estimator [1]_, followed by PCA dimensionality
     reduction.
 
     Parameters
@@ -32,6 +32,17 @@ class MutualInfoIDTxl(MutualInfoPCA):
     ----------
     ignore_layers : tuple
         A tuple to ignore layer classes to monitor for MI.
+
+    References
+    ----------
+    1. P. Wollstadt, J. T. Lizier, R. Vicente, C. Finn, M. Martinez-Zarzuela,
+       P. Mediano, L. Novelli, M. Wibral (2018). IDTxl: The Information
+       Dynamics Toolkit xl: a Python package for the efficient analysis of
+       multivariate information dynamics in networks. Journal of Open Source
+       Software, 4(34), 1081. https://doi.org/10.21105/joss.01081.
+
+       Source code: https://github.com/pwollstadt/IDTxl
+
     """
 
     def __init__(self, data_loader: DataLoader, pca_size=50, debug=False):

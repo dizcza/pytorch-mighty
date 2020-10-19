@@ -208,7 +208,17 @@ def micd(x, y):
 
 class MutualInfoGCMI(MutualInfoPCA):
     """
-    Gaussian-Copula Mutual Information estimation.
+    Gaussian-Copula Mutual Information Estimator [1]_, followed by PCA
+    dimensionality reduction.
+
+    References
+    ----------
+    1. RAA Ince, BL Giordano, C Kayser, GA Rousselet, J Gross and PG Schyns
+       "A statistical framework for neuroimaging data analysis based on mutual
+       information estimated via a Gaussian copula" Human Brain Mapping (2017)
+       38 p. 1541-1573 doi:10.1002/hbm.23471.
+
+       Source code: https://github.com/robince/gcmi
     """
 
     def _prepare_input_finished(self):
