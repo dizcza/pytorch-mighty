@@ -56,10 +56,10 @@ class VarianceOnline(MeanOnline):
         if self.mean is None:
             self.mean = torch.zeros_like(new_tensor)
             self.M2 = torch.zeros_like(new_tensor)
-        delta = new_tensor - self.mean
-        self.mean += delta / self.count
-        delta2 = new_tensor - self.mean
-        self.M2 += delta * delta2
+        delta_var = new_tensor - self.mean
+        self.mean += delta_var / self.count
+        delta_var.mul_(new_tensor - self.mean)
+        self.M2 += delta_var
 
     def get_mean_std(self, unbiased=True):
         if self.mean is None:
@@ -135,10 +135,11 @@ class VarianceOnlineBatch(VarianceOnline):
         if self.mean is None:
             self.mean = torch.zeros_like(new_tensor[0])
             self.M2 = torch.zeros_like(new_tensor[0])
-        mean_old = self.mean.clone()
-        delta = new_tensor.sum(dim=0) - self.mean * batch_size
-        self.mean += delta / self.count
-        delta_var = (new_tensor - mean_old) * (new_tensor - self.mean)
+        delta_var = new_tensor - self.mean
+        delta_mean = new_tensor.sum(dim=0).sub_(self.mean * batch_size
+                                                ).div_(self.count)
+        self.mean.add_(delta_mean)
+        delta_var.mul_(new_tensor - self.mean)
         self.M2 += torch.sum(delta_var, dim=0)
 
 

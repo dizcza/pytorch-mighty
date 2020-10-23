@@ -12,7 +12,7 @@ class TestVarianceOnline(unittest.TestCase):
 
     def setUp(self):
         torch.manual_seed(28)
-        self.data = torch.randn(50, 5)
+        self.data = torch.rand(500, 5)
         self.mean_true = self.data.mean(dim=0).numpy()
         self.std_unbiased = self.data.std(dim=0, unbiased=True).numpy()
         self.std_biased = self.data.std(dim=0, unbiased=False).numpy()
@@ -26,7 +26,8 @@ class TestVarianceOnline(unittest.TestCase):
 
     def test_mean_online_batch(self):
         mean_online = MeanOnlineBatch()
-        mean_online.update(self.data)
+        for batch_tensor in self.data.split(split_size=20):
+            mean_online.update(batch_tensor)
         mean = mean_online.get_mean()
         assert_array_almost_equal(mean.numpy(), self.mean_true)
 
@@ -42,7 +43,8 @@ class TestVarianceOnline(unittest.TestCase):
 
     def test_variance_online_batch(self):
         var_online_batch = VarianceOnlineBatch()
-        var_online_batch.update(self.data)
+        for batch_tensor in self.data.split(split_size=20):
+            var_online_batch.update(batch_tensor)
         mean, std_unbiased = var_online_batch.get_mean_std(unbiased=True)
         _, std_biased = var_online_batch.get_mean_std(unbiased=False)
         assert_array_almost_equal(mean.numpy(), self.mean_true)
