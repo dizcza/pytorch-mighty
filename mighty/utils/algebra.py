@@ -41,8 +41,8 @@ def exponential_moving_average(array, window: int):
     pw0 = alpha * alpha_rev ** (n - 1)
 
     mult = array * pw0 * scale_arr
-    cumsums = mult.cumsum()
-    out = offset + cumsums * scale_arr[::-1]
+    cumsums = mult.cumsum(dim=0)
+    out = offset + cumsums * reversed(scale_arr)
     return out
 
 

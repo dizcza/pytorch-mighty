@@ -124,7 +124,8 @@ class MINE_Trainer:
         self.optimizer.step()
 
     def smooth_history(self):
-        history = self.mi_history[~torch.isnan(self.mi_history)]
+        history = torch.as_tensor(self.mi_history)
+        history = history[~torch.isnan(history)]
         return exponential_moving_average(history,
                                           window=self.smooth_filter_size)
 
