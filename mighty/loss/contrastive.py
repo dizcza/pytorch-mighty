@@ -1,102 +1,33 @@
 from abc import ABC
 
-import numpy as np
 import torch
 import torch.nn as nn
-
-from mighty.monitor.batch_timer import timer
-from mighty.utils.algebra import compute_distance
+import warnings
 
 
-class PairLoss(nn.Module, ABC):
+class PairLossSampler(nn.Module, ABC):
     """
-    A base class for TripletLoss and ContrastiveLoss.
+    A base class for TripletLossSampler and ContrastiveLossSampler.
 
     Parameters
     ----------
-    metric : {'cosine', 'l1', 'l2'}, optional
-        The metric to use to calculate the distance between two vectors.
-        Default: 'cosine'
-    margin : float or None, optional
-        The margin to have between intra- and inner-samples. Large values
-        promote better generalization in cost of lower accuracy. If None is
-        passed, the margin will be set to :code:`0.5` if the metric is 'cosine'
-        and :code:`1.0` otherwise.
-        Default: None
+    criterion : nn.Module
+        A criterion module to compute the loss, followed by pairs sampling.
     pairs_multiplier : int, optional
-        Defines how many pairs create from a single sample.
+        Defines how many pairs to create from a single sample. The typical
+        range is ``[1, 10]``.
         Default: 1
-    leave_hardest : float, optional
-        Defines the hard negative and positive mining.
-        If less than :code:`1.0`, take the "hardest" pairs only that a
-        discriminator failed to resolve most. If set to :code:`1.0`, all
-        pairs are returned.
-        Default: 1.0
     """
 
-    def __init__(self, metric='cosine', margin: float = None,
-                 pairs_multiplier: int = 1, leave_hardest: float = 1.0):
-        assert 0 < leave_hardest <= 1, "Value should be in (0, 1]"
+    def __init__(self, criterion: nn.Module, pairs_multiplier: int = 1):
         super().__init__()
-        self.metric = metric
-        if margin is None:
-            if self.metric == 'cosine':
-                margin = 0.5
-            else:
-                margin = 1.0
-        self.margin = margin
-        self.leave_hardest = leave_hardest
+        self.criterion = criterion
         self.pairs_multiplier = pairs_multiplier
 
-    @property
-    def power(self):
-        """
-        The metric norm.
-
-        Returns
-        -------
-        float
-            :code:`1` for 'l1' and :code:`2` for 'l2'.
-        """
-        if self.metric == 'l1':
-            return 1
-        elif self.metric == 'l2':
-            return 2
-        else:
-            raise NotImplementedError
-
     def extra_repr(self):
-        return f'metric={self.metric}, margin={self.margin}, ' \
-               f'pairs_multiplier={self.pairs_multiplier}, ' \
-               f'leave_hardest={self.leave_hardest}'
-
-    def _filter_nonzero(self, outputs, labels, normalize: bool):
-        # filters out zero vectors
-        nonzero = (outputs != 0).any(dim=1)
-        outputs = outputs[nonzero]
-        labels = labels[nonzero]
-        if normalize and self.metric != 'cosine':
-            # sparsity changes with epoch but margin stays the same
-            outputs = outputs / outputs.norm(p=self.power, dim=1).mean()
-        return outputs, labels
-
-    def distance(self, input1, input2):
-        """
-        Computes the distance between two batches of vectors.
-
-        Parameters
-        ----------
-        input1, input2 : (B, N) torch.Tensor
-            Input and target vector batches.
-
-        Returns
-        -------
-        torch.Tensor
-            A tensor of length B, containing the distances.
-        """
-        return compute_distance(input1=input1, input2=input2,
-                                metric=self.metric, dim=1)
-
+        margin = getattr(self.criterion, 'margin')
+        margin_str = '' if margin is None else f", criterion.margin={margin}"
+        return f"pairs_multiplier={self.pairs_multiplier}{margin_str}"
 
     def pairs_to_sample(self, labels):
         """
@@ -114,36 +45,20 @@ class PairLoss(nn.Module, ABC):
 
         Returns
         -------
-        random_pairs_shape : tuple
-            A tuple containing one element - the estimated number of random
-            permutations to sample to get the desired number of pairs or
-            triplets.
+        n_random_pairs : int
+            An estimated number of random permutations to sample to get the
+            desired number of pairs or triplets.
         """
         batch_size = len(labels)
         n_unique = len(labels.unique(sorted=False))
-        random_pairs_shape = (self.pairs_multiplier * n_unique * batch_size,)
-        return random_pairs_shape
+        n_random_pairs = self.pairs_multiplier * n_unique * batch_size
+        return n_random_pairs
 
-    def take_hardest(self, distances):
-        """
-        Sort the `distances` in descending order and return top
-        `self.leave_hardest`.
-
-        Parameters
-        ----------
-        distances : (B,) torch.Tensor
-            Computed distances batch.
-
-        Returns
-        -------
-        distances : torch.Tensor
-            A subsample of the input `distances`. If `self.leave_hardest` is
-            :code:`1.0`, do nothing - return the input `distances`.
-        """
-        if self.leave_hardest < 1.0:
-            distances, _unused = distances.sort(descending=True)
-            distances = distances[: int(len(distances) * self.leave_hardest)]
-        return distances
+    def _check_non_nan(self, loss: torch.Tensor):
+        if torch.isnan(loss):
+            warnings.warn("Loss evaluated to NaN probably because there were "
+                          "no pairs to sample. Increase the "
+                          "'pairs_multiplier'.")
 
     def forward(self, outputs, labels):
         """
@@ -165,7 +80,7 @@ class PairLoss(nn.Module, ABC):
         raise NotImplementedError
 
 
-class ContrastiveLossRandom(PairLoss):
+class ContrastiveLossSampler(PairLossSampler):
     """
     Contrastive Loss [1]_ with random sampling of vector pairs out of the
     conventional :code:`(outputs, labels)` batch.
@@ -175,29 +90,13 @@ class ContrastiveLossRandom(PairLoss):
 
     Parameters
     ----------
-    metric : {'cosine', 'l1', 'l2'}, optional
-        The metric to use to calculate the distance between two vectors.
-        Default: 'cosine'
-    margin : float or None, optional
-        The margin to have between intra- and inner-samples. Large values
-        promote better generalization in cost of lower accuracy. If None is
-        passed, the margin will be set to :code:`0.5` if the metric is 'cosine'
-        and :code:`1.0` otherwise.
-        Default: None
+    criterion : nn.Module
+        Contrastive Loss module (e.g., ``nn.CosineEmbeddingLoss``) to compute
+        the loss, followed by pairs sampling.
     pairs_multiplier : int, optional
-        Defines how many pairs create from a single sample.
+        Defines how many pairs to create from a single sample. The typical
+        range is ``[1, 10]``.
         Default: 1
-    leave_hardest : float, optional
-        Defines the hard negative and positive mining.
-        If less than :code:`1.0`, take the "hardest" pairs only that a
-        discriminator failed to resolve most. If set to :code:`1.0`, all
-        pairs are returned.
-        Default: 1.0
-    margin_same : float, optional
-        Defines the margin for same-same pairs below which the loss is
-        truncated to zero - it does not make sense to penalize for non-exact
-        matches.
-        Default: 1.0
 
     References
     ----------
@@ -207,96 +106,31 @@ class ContrastiveLossRandom(PairLoss):
        (Vol. 2, pp. 1735-1742). IEEE.
     """
 
-    def __init__(self, metric='cosine', margin: float = None,
-                 pairs_multiplier: int = 1, leave_hardest: float = 1.0,
-                 margin_same: float = 0.1):
-        super().__init__(metric=metric, margin=margin,
-                         pairs_multiplier=pairs_multiplier,
-                         leave_hardest=leave_hardest)
-        self.margin_same = margin_same
-
-    def extra_repr(self):
-        return f'{super().extra_repr()}, margin_same={self.margin_same}'
-
-    def _forward_contrastive(self, outputs, labels):
-        return self._forward_random(outputs, labels)
-
-    def _forward_random(self, outputs, labels):
+    def forward(self, outputs, labels):
         n_samples = len(outputs)
-        pairs_to_sample = self.pairs_to_sample(labels)
+        pairs_to_sample = (self.pairs_to_sample(labels),)
         left_indices = torch.randint(low=0, high=n_samples,
                                      size=pairs_to_sample,
                                      device=outputs.device)
         right_indices = torch.randint(low=0, high=n_samples,
                                       size=pairs_to_sample,
                                       device=outputs.device)
-        dist = self.distance(outputs[left_indices], outputs[right_indices])
+
+        # exclude (a, a) pairs
+        indices_different = left_indices != right_indices
+        left_indices = left_indices[indices_different]
+        right_indices = right_indices[indices_different]
+
+        # exclude [(a, b), (b, a)] duplicate pairs
+        left_indices, right_indices = torch.stack(
+            [left_indices, right_indices], dim=1).sort(dim=1).values.sort(
+            dim=0).values.unique(sorted=False, dim=0).t()
+
         is_same = labels[left_indices] == labels[right_indices]
-
-        dist_same = dist[is_same]
-        dist_other = dist[~is_same]
-
-        return dist_same, dist_other
-
-    def forward(self, outputs, labels):
-        outputs, labels = self._filter_nonzero(outputs, labels, normalize=True)
-        if timer.is_epoch_finished():
-            # if an epoch is finished, use random pairs no matter what the mode is
-            dist_same, dist_other = self._forward_random(outputs, labels)
-        else:
-            dist_same, dist_other = self._forward_contrastive(outputs, labels)
-
-        dist_same = self.take_hardest(dist_same)
-        loss_same = torch.relu(dist_same - self.margin_same).mean()
-
-        loss_other = self.margin - dist_other
-        loss_other = self.take_hardest(loss_other)
-        loss_other = torch.relu(loss_other).mean()
-
-        loss = loss_same + loss_other
+        y_target = 2 * is_same - 1
+        loss = self.criterion(outputs[left_indices],
+                              outputs[right_indices],
+                              y_target)
+        self._check_non_nan(loss)
 
         return loss
-
-
-class ContrastiveLossPairwise(ContrastiveLossRandom):
-    """
-    Contrastive Loss that samples all possible B x B combinations of pairs,
-    given the input batch of B samples.
-
-    Performs worse and slower than `ContrastiveLossRandom` equivalent.
-
-    For the input parameters description, refer to
-    :func:`ContrastiveLossRandom`.
-    """
-
-    def _forward_contrastive(self, outputs, labels):
-        dist_same = []
-        dist_other = []
-        labels_unique = labels.unique()
-        outputs_sorted = {}
-        for label in labels_unique:
-            outputs_sorted[label.item()] = outputs[labels == label]
-        for label_id, label_same in enumerate(labels_unique):
-            outputs_same_label = outputs_sorted[label_same.item()]
-            n_same = len(outputs_same_label)
-            if n_same > 1:
-                upper_triangle_idx = np.triu_indices(n=n_same, k=1)
-                upper_triangle_idx = torch.as_tensor(upper_triangle_idx,
-                                                     device=outputs_same_label.device)
-                same_left, same_right = outputs_same_label[upper_triangle_idx]
-                dist_same.append(self.distance(same_left, same_right))
-
-            for label_other in labels_unique[label_id + 1:]:
-                outputs_other_label = outputs_sorted[label_other.item()]
-                n_other = len(outputs_other_label)
-                n_max = max(n_same, n_other)
-                idx_same = torch.arange(n_max) % n_same
-                idx_other = torch.arange(n_max) % n_other
-                dist = self.distance(outputs_other_label[idx_other],
-                                     outputs_same_label[idx_same])
-                dist_other.append(dist)
-
-        dist_same = torch.cat(dist_same)
-        dist_other = torch.cat(dist_other)
-
-        return dist_same, dist_other

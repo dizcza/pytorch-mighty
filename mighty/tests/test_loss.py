@@ -3,33 +3,40 @@ import unittest
 import torch
 import torch.nn as nn
 
-from mighty.loss import ContrastiveLossRandom, ContrastiveLossPairwise, \
-    TripletLoss, LossPenalty
+from mighty.loss import ContrastiveLossSampler, TripletLossSampler, \
+    LossPenalty, TripletCosineLoss
 from mighty.utils.common import set_seed
 
 
 class TestPairLoss(unittest.TestCase):
 
     def setUp(self):
-        set_seed(17)
-        n_classes = 10
+        set_seed(0)
+        n_classes = 3
         labels = torch.arange(n_classes)
         self.labels = torch.cat([labels, labels])
         outputs_same = torch.randn(n_classes, 30)
         self.outputs_same = torch.cat([outputs_same, outputs_same])
-        self.loss_models = (ContrastiveLossRandom(), ContrastiveLossPairwise(), TripletLoss())
+        self.loss_models = (
+            ContrastiveLossSampler(nn.CosineEmbeddingLoss(margin=0.5)),
+            TripletLossSampler(nn.TripletMarginLoss()),
+            TripletLossSampler(TripletCosineLoss())
+        )
 
     def test_same_pairs(self):
+        # The loss is expected to be zero because we set a large margin.
         for loss_model in self.loss_models:
-            loss = loss_model(self.outputs_same, self.labels)
-            self.assertEqual(loss, 0.)
+            with self.subTest(loss_model=loss_model):
+                loss = loss_model(self.outputs_same, self.labels)
+                self.assertEqual(loss, 0.)
 
     def test_rand_pairs(self):
-        set_seed(17)
+        set_seed(1)
         outputs = torch.randn(self.labels.shape[0], 30)
         for loss_model in self.loss_models:
-            loss = loss_model(outputs, self.labels)
-            self.assertGreater(loss, 0.)
+            with self.subTest(loss_model=loss_model):
+                loss = loss_model(outputs, self.labels)
+                self.assertGreater(loss, 0.)
 
 
 class TestLossPenalty(unittest.TestCase):

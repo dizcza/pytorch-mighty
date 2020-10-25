@@ -1,4 +1,3 @@
-import numpy as np
 import torch
 import torch.nn.functional as F
 
@@ -21,22 +20,21 @@ def exponential_moving_average(array, window: int):
 
     Parameters
     ----------
-    array : (N,) np.ndarray
+    array : (N,) torch.Tensor
         Input array-like.
     window : int
         Sliding window width.
 
     Returns
     -------
-    out : (N,) np.ndarrat
+    out : (N,) torch.Tensor
         Filtered array of the same length.
     """
-    array = np.asarray(array)
     alpha = 2 / (window + 1.0)
     alpha_rev = 1 - alpha
     n = array.shape[0]
 
-    pows = alpha_rev ** (np.arange(n + 1))
+    pows = torch.pow(alpha_rev, torch.arange(n + 1))
 
     scale_arr = 1 / pows[:-1]
     offset = array[0] * pows[1:]

@@ -77,18 +77,20 @@ class TrainerTestCase(unittest.TestCase):
 
     def test_TrainerEmbedding(self):
         set_seed(3)
+        criterion = TripletLossSampler(nn.TripletMarginLoss())
         trainer = TrainerEmbedding(self.model,
-                                   criterion=TripletLoss(),
+                                   criterion=criterion,
                                    data_loader=self.data_loader,
                                    optimizer=self.optimizer,
                                    scheduler=self.scheduler)
         loss_epochs = trainer.train(n_epochs=1, mutual_info_layers=0)
-        assert_array_almost_equal(loss_epochs, [0.043648], decimal=3)
+        assert_array_almost_equal(loss_epochs, [0.09936], decimal=3)
 
     def test_TrainerEmbedding_cached(self):
         set_seed(3)
+        criterion = TripletLossSampler(nn.TripletMarginLoss())
         trainer = TrainerEmbedding(self.model,
-                                   criterion=TripletLoss(),
+                                   criterion=criterion,
                                    data_loader=self.data_loader,
                                    optimizer=self.optimizer,
                                    scheduler=self.scheduler,

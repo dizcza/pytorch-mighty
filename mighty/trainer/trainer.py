@@ -11,7 +11,7 @@ import torch.nn as nn
 import torch.utils.data
 from tqdm import tqdm
 
-from mighty.loss import PairLoss, LossPenalty
+from mighty.loss import PairLossSampler, LossPenalty
 from mighty.models import AutoencoderOutput, MLP
 from mighty.monitor.accuracy import AccuracyEmbedding, \
     AccuracyArgmax, Accuracy
@@ -105,8 +105,8 @@ class Trainer(ABC):
         if env_suffix:
             self.env_name = f'{self.env_name} {env_suffix}'
         if accuracy_measure is None:
-            if isinstance(self.criterion, PairLoss):
-                accuracy_measure = AccuracyEmbedding(self.criterion.metric)
+            if isinstance(self.criterion, PairLossSampler):
+                accuracy_measure = AccuracyEmbedding()
             else:
                 # cross entropy loss
                 accuracy_measure = AccuracyArgmax()
