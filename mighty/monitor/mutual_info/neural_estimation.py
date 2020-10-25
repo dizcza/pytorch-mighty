@@ -246,9 +246,9 @@ class MutualInfoNeuralEstimation(MutualInfoPCA):
             info_y.append(trainer_y.smooth_history())
             legend.append(layer_name)
         for info_name, info in (('input X', info_x), ('target Y', info_y)):
-            info = np.transpose(info).squeeze()
+            info = torch.stack(info).t().squeeze()
             title = f'MutualInfoNeuralEstimation {info_name}'
-            viz.line(Y=info, X=np.arange(len(info)), win=title, opts=dict(
+            viz.line(Y=info, X=torch.arange(len(info)), win=title, opts=dict(
                 xlabel='Iteration',
                 ylabel='Mutual info lower bound, bits',
                 title=title,
