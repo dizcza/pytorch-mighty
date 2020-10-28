@@ -1,3 +1,13 @@
+"""
+A basic gradient-based trainer.
+
+.. autosummary::
+    :toctree: toctree/trainer/
+
+    TrainerGrad
+
+"""
+
 from typing import Union
 
 import torch.nn as nn
@@ -6,6 +16,11 @@ from torch.optim.optimizer import Optimizer
 
 from mighty.utils.data import DataLoader
 from .trainer import Trainer
+
+
+__all__ = [
+    "TrainerGrad"
+]
 
 
 class TrainerGrad(Trainer):

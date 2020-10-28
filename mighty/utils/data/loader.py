@@ -1,3 +1,13 @@
+"""
+Data loader with simple API.
+
+.. autosummary::
+    :toctree: toctree/utils/
+
+    DataLoader
+
+"""
+
 import math
 
 import torch
@@ -10,6 +20,30 @@ from mighty.utils.data.normalize import get_normalize_inverse
 
 
 class DataLoader:
+    """
+    Data loader with simple API.
+
+    Parameters
+    ----------
+    dataset_cls : type
+        Dataset class.
+    transform : object, optional
+        Torchvision transform object that implements ``__call__`` method.
+        Default: ToTensor()
+    loader_cls : type, optional
+        A batches loader class.
+        Default: torch.utils.data.DataLoader
+    batch_size : int, optional
+        Batch size. Default: 256
+    eval_size : int or None, optional
+        Evaluation size in the minimum number of samples. If None, the length
+        of the dataset is used.
+        Default: None
+    num_workers : int, optional
+        The number of workers passed to `loader_cls`.
+        Default: 0
+    """
+
     def __init__(self, dataset_cls, transform=ToTensor(),
                  loader_cls=torch.utils.data.DataLoader,
                  batch_size=BATCH_SIZE, eval_size=None, num_workers=0):
@@ -33,7 +67,21 @@ class DataLoader:
             self.has_labels = isinstance(labels, torch.Tensor) \
                               and labels.dtype is torch.long
 
-    def get(self, train=True) -> torch.utils.data.DataLoader:
+    def get(self, train=True):
+        """
+        Returns a train or test loader.
+
+        Parameters
+        ----------
+        train : bool, optional
+            Train (True) or test (False) fold.
+            Default: true
+
+        Returns
+        -------
+        loader : torch.utils.data.DataLoader
+            A data loader with batches.
+        """
         dataset = self.dataset_cls(DATA_DIR, train=train, download=True,
                                    transform=self.transform)
         loader = self.loader_cls(dataset,
@@ -42,7 +90,23 @@ class DataLoader:
                                  num_workers=self.num_workers)
         return loader
 
-    def eval(self, description=None) -> torch.utils.data.DataLoader:
+    def eval(self, description=None):
+        """
+        Returns a generator over train samples with no shuffling.
+
+        The generator exits after producing at least :attr:`eval_size` samples.
+
+        Parameters
+        ----------
+        description : str or None, optional
+            Message description.
+            Default: None
+
+        Yields
+        ------
+        batch : torch.Tensor
+            Eval batch, same as in train.
+        """
         dataset = self.dataset_cls(DATA_DIR, train=True, download=True,
                                    transform=self.transform)
         eval_loader = self.loader_cls(dataset,
@@ -62,7 +126,17 @@ class DataLoader:
             yield batch
 
     def sample(self):
-        # always returns the first sample, no shuffling!
+        """
+        Returns the first batch from :meth:`DataLoader.eval`.
+
+        No shuffling/sampling is performed.
+
+        Returns
+        -------
+        torch.Tensor or tuple of torch.Tensor
+            A tensor or a batch of tensors.
+
+        """
         return next(iter(self.eval()))
 
     def __repr__(self):

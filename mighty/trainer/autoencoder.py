@@ -1,3 +1,14 @@
+"""
+AutoEncoder trainer that not only transforms inputs to meaningful embeddings
+but also aims to restore the input signal from it.
+
+.. autosummary::
+    :toctree: toctree/trainer/
+
+    TrainerAutoencoder
+"""
+
+
 from typing import Union
 
 import torch
@@ -10,10 +21,15 @@ from mighty.loss import LossPenalty
 from mighty.models import AutoencoderLinear
 from mighty.monitor.monitor import MonitorAutoencoder
 from mighty.monitor.var_online import MeanOnline
-from mighty.utils.algebra import compute_psnr
+from mighty.utils.signal import peak_to_signal_noise_ratio
 from mighty.utils.common import input_from_batch, batch_to_cuda
 from mighty.utils.data import DataLoader
 from .embedding import TrainerEmbedding
+
+
+__all__ = [
+    "TrainerAutoencoder"
+]
 
 
 class TrainerAutoencoder(TrainerEmbedding):
@@ -81,7 +97,7 @@ class TrainerAutoencoder(TrainerEmbedding):
         latent, reconstructed = output
         if isinstance(self.criterion, nn.BCEWithLogitsLoss):
             reconstructed = reconstructed.sigmoid()
-        psnr = compute_psnr(input, reconstructed)
+        psnr = peak_to_signal_noise_ratio(input, reconstructed)
         fold = 'train' if train else 'test'
         if torch.isfinite(psnr):
             self.online[f'psnr-{fold}'].update(psnr.cpu())

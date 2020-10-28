@@ -14,7 +14,7 @@ import torch.utils.data
 
 from mighty.models import MLP
 from mighty.monitor.mutual_info._pca_preprocess import MutualInfoPCA
-from mighty.utils.algebra import to_onehot, exponential_moving_average
+from mighty.utils.signal import to_onehot, exponential_moving_average
 from mighty.utils.constants import BATCH_SIZE
 from mighty.utils.data import DataLoader
 

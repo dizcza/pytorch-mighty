@@ -4,7 +4,7 @@ import torch
 import torch.utils.data
 
 from mighty.monitor.var_online import MeanOnlineLabels
-from mighty.utils.algebra import compute_distance
+from mighty.utils.signal import compute_distance
 
 
 def calc_accuracy(labels_true, labels_predicted) -> float:

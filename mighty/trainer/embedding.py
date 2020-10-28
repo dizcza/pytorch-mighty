@@ -1,3 +1,13 @@
+"""
+An unsupervised trainer that transforms inputs to meaningful embeddings.
+
+.. autosummary::
+    :toctree: toctree/trainer/
+
+    TrainerEmbedding
+
+"""
+
 from typing import Union
 
 import torch.nn as nn
@@ -7,9 +17,14 @@ from torch.optim.optimizer import Optimizer
 from mighty.monitor.accuracy import Accuracy, AccuracyEmbedding
 from mighty.monitor.monitor import MonitorEmbedding
 from mighty.monitor.var_online import MeanOnline, VarianceOnlineLabels
-from mighty.utils.algebra import compute_sparsity
+from mighty.utils.signal import compute_sparsity
 from mighty.utils.data import DataLoader
 from .gradient import TrainerGrad
+
+
+__all__ = [
+    "TrainerEmbedding"
+]
 
 
 class TrainerEmbedding(TrainerGrad):

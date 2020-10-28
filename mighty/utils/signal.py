@@ -1,3 +1,15 @@
+"""
+Signal processing and statistics.
+
+.. autosummary::
+    :toctree: toctree/utils/
+
+    exponential_moving_average
+    peak_to_signal_noise_ratio
+    compute_sparsity
+
+"""
+
 import torch
 import torch.nn.functional as F
 
@@ -14,14 +26,14 @@ def compute_distance(input1, input2, metric, dim=1):
     return dist
 
 
-def exponential_moving_average(array, window: int):
+def exponential_moving_average(tensor, window: int):
     """
     Exponential moving average in a sliding window.
 
     Parameters
     ----------
-    array : (N,) torch.Tensor
-        Input array-like.
+    tensor : (N,) torch.Tensor
+        Input tensor.
     window : int
         Sliding window width.
 
@@ -30,17 +42,18 @@ def exponential_moving_average(array, window: int):
     out : (N,) torch.Tensor
         Filtered array of the same length.
     """
+    tensor = torch.as_tensor(tensor)
     alpha = 2 / (window + 1.0)
     alpha_rev = 1 - alpha
-    n = array.shape[0]
+    n = tensor.shape[0]
 
     pows = torch.pow(alpha_rev, torch.arange(n + 1))
 
     scale_arr = 1 / pows[:-1]
-    offset = array[0] * pows[1:]
+    offset = tensor[0] * pows[1:]
     pw0 = alpha * alpha_rev ** (n - 1)
 
-    mult = array * pw0 * scale_arr
+    mult = tensor * pw0 * scale_arr
     cumsums = mult.cumsum(dim=0)
     out = offset + cumsums * reversed(scale_arr)
     return out
@@ -55,10 +68,9 @@ def to_onehot(y_labels, n_classes=None):
     return y_onehot
 
 
-def compute_psnr(signal_orig, signal_estimated):
+def peak_to_signal_noise_ratio(signal_orig, signal_estimated):
     """
-    Computes the Peak signal-to-noise ratio between two signals (flattened
-    images).
+    Computes the Peak signal-to-noise ratio between two signals.
 
     Parameters
     ----------
@@ -73,12 +85,10 @@ def compute_psnr(signal_orig, signal_estimated):
     """
     signal_orig = signal_orig.detach()
     signal_estimated = signal_estimated.detach()
-    if signal_orig.ndim == 1:
-        signal_orig = signal_orig.unsqueeze(dim=0)
+    signal_orig = torch.atleast_2d(signal_orig)
+    signal_estimated = torch.atleast_2d(signal_estimated)
     signal_orig = signal_orig.flatten(start_dim=1)
     signal_estimated = signal_estimated.flatten(start_dim=1)
-    if signal_estimated.ndim == 1:
-        signal_estimated = signal_estimated.unsqueeze(dim=0)
     if signal_orig.shape != signal_estimated.shape:
         raise ValueError("Input signals must have the same shape.")
 
@@ -97,7 +107,7 @@ def compute_psnr(signal_orig, signal_estimated):
     mse_val = F.mse_loss(signal_orig, signal_estimated,
                          reduction='none').mean(dim=1)
     psnr = 10 * torch.log10(dynamic_range ** 2 / mse_val).mean()
-    return psnr
+    return psnr.squeeze()
 
 
 def compute_sparsity(tensor):

@@ -1,3 +1,13 @@
+"""
+A Trainer base class.
+
+.. autosummary::
+    :toctree: toctree/trainer/
+
+    Trainer
+
+"""
+
 import subprocess
 import sys
 import time
@@ -28,6 +38,11 @@ from mighty.utils.constants import CHECKPOINTS_DIR
 from mighty.utils.data import DataLoader
 from mighty.utils.domain import AdversarialExamples
 from mighty.utils.prepare import prepare_eval
+
+
+__all__ = [
+    "Trainer"
+]
 
 
 class Trainer(ABC):

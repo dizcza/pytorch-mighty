@@ -1,3 +1,14 @@
+"""
+An Optimizer stub for trainers that update model weights in a gradient-free
+fashion.
+
+.. autosummary::
+    :toctree: toctree/utils/
+
+    OptimizerStub
+
+"""
+
 from typing import Optional, Callable
 
 from torch.optim.optimizer import Optimizer

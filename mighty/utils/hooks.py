@@ -1,3 +1,13 @@
+"""
+Layer hooks.
+
+.. autosummary::
+    :toctree: toctree/utils/
+
+    get_layers_ordered
+
+"""
+
 import pickle
 
 import shutil
@@ -10,6 +20,29 @@ from mighty.utils.constants import DUMPS_DIR
 
 def get_layers_ordered(model: nn.Module, input_sample: torch.Tensor,
                        ignore_layers=(nn.Sequential,), ignore_children=()):
+    """
+    Returns a list of ordered layers of the input model.
+
+    Parameters
+    ----------
+    model : nn.Module
+        An input model.
+    input_sample : torch.Tensor
+        A sample tensor to be used with the model.
+    ignore_layers : tuple of type
+        A tuple of model classes not to include in the final result.
+        Default: (nn.Sequential,)
+    ignore_children : tuple of type
+        A tuple of model classes to skip entering their children.
+        Default: ()
+
+    Returns
+    -------
+    layers_ordered : list of torch.Tensor
+        An ordered list of layers of the input model. Note that some modules
+        might be added in the list more than once.
+
+    """
     ignore_layers = ignore_layers + (type(model),)
     hooks = []
     layers_ordered = []
@@ -42,6 +75,9 @@ def get_layers_ordered(model: nn.Module, input_sample: torch.Tensor,
 
 
 class DumpActivationsHook:
+    """
+    A use-case for :func:`get_layers_ordered`.
+    """
     def __init__(self, model: nn.Module,
                  inspect_layers=(nn.Linear, nn.Conv2d),
                  dumps_dir=DUMPS_DIR):
