@@ -1,5 +1,6 @@
 import torch
 import torch.utils.data
+import torchvision.transforms.functional as F
 from torchvision.datasets import MNIST
 from torchvision.transforms import Normalize, Compose, ToTensor
 from tqdm import tqdm
@@ -12,7 +13,13 @@ from mighty.utils.constants import DATA_DIR, BATCH_SIZE
 
 class NormalizeInverse(Normalize):
     """
-    Undoes the normalization and returns the reconstructed images in the input domain.
+    Undoes the normalization and returns reconstructed images in the input
+    domain.
+
+    Parameters
+    ----------
+    mean, std : array-like
+        Sequence of means and standard deviations for each channel.
     """
 
     def __init__(self, mean, std):
@@ -27,10 +34,24 @@ class NormalizeInverse(Normalize):
         dtype = tensor.dtype
         mean = torch.as_tensor(self.mean, dtype=dtype, device=tensor.device)
         std = torch.as_tensor(self.std, dtype=dtype, device=tensor.device)
-        tensor = tensor.sub(mean).div_(std)
-        return tensor
+        return F.normalize(tensor, mean=mean, std=std, inplace=False)
 
 def get_normalize_inverse(transform):
+    """
+    Traverses the input `transform`, finds a class of ``Normalize``, and
+    returns ``NormalizeInverse``.
+
+    Parameters
+    ----------
+    transform:
+        Torchvision transform.
+
+    Returns
+    -------
+    NormalizeInverse
+        NormalizeInverse object to undo the normalization in the input
+        `transform` or None, if ``Normalize`` instance is not found.
+    """
     normalize = get_normalize(transform)
     if normalize:
         return NormalizeInverse(mean=normalize.mean,
@@ -39,6 +60,22 @@ def get_normalize_inverse(transform):
 
 
 def get_normalize(transform, normalize_cls=Normalize):
+    """
+    Traverses the input `transform` and finds an instance of `normalize_cls`.
+
+    Parameters
+    ----------
+    transform:
+        Torchvision transform
+    normalize_cls : type, optional
+        A class to look for in the input transform.
+        Default: Normalize
+
+    Returns
+    -------
+    Normalize
+        Found normalize instance or None.
+    """
     if isinstance(transform, Compose):
         for child in transform.transforms:
             norm_inv = get_normalize(child, normalize_cls)
@@ -51,8 +88,18 @@ def get_normalize(transform, normalize_cls=Normalize):
 
 def dataset_mean_std(dataset_cls: type):
     """
-    :param dataset_cls: class type of torch.utils.data.Dataset
-    :return: samples' mean and std per channel, estimated from a training set
+    Estimates dataset mean and std.
+
+    Parameters
+    ----------
+    dataset_cls : type
+        A dataset class.
+
+    Returns
+    -------
+    mean, std : (C, H, W) torch.Tensor
+        Channel- and pixel-wise dataset mean and std, estimated over all
+        samples.
     """
     mean_std_file = (DATA_DIR / "mean_std" / dataset_cls.__name__
                      ).with_suffix('.pt')
@@ -76,13 +123,19 @@ def dataset_mean_std(dataset_cls: type):
     return mean, std
 
 
-def visualize_mean_std(dataset_cls=MNIST):
+def plot_dataset_mean_std(viz=None, dataset_cls=MNIST):
     """
     Plots dataset mean and std, averaged across channels.
-    Run as module: 'python -m monitor.var_online'.
-    :param dataset_cls: class type of torch.utils.data.Dataset
+
+    Parameters
+    ----------
+    viz : Visdom
+        A Visdom instance.
+    dataset_cls : type, optional
+        A dataset class to plot its mean and std.
     """
-    viz = VisdomMighty(env="main")
+    if viz is None:
+        viz = VisdomMighty(env="main")
     mean, std = dataset_mean_std(dataset_cls=dataset_cls)
     viz.heatmap(mean.mean(dim=0), win=f'{dataset_cls.__name__} mean',
                 opts=dict(
@@ -94,4 +147,4 @@ def visualize_mean_std(dataset_cls=MNIST):
 
 
 if __name__ == '__main__':
-    visualize_mean_std(dataset_cls=MNIST)
+    plot_dataset_mean_std(dataset_cls=MNIST)
