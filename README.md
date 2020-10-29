@@ -2,9 +2,12 @@
 
 [![CircleCI](https://circleci.com/gh/dizcza/pytorch-mighty.svg?style=svg)](https://app.circleci.com/pipelines/github/dizcza/pytorch-mighty)
 ![](https://coveralls.io/repos/dizcza/pytorch-mighty/badge.png "Unit Test Coverage")
+[![Documentation Status](https://readthedocs.org/projects/pytorch-mighty/badge/?version=latest)](https://pytorch-mighty.readthedocs.io/en/latest/?badge=latest)
 
 
 The Mighty Monitor Trainer for your pytorch models. Powered by [Visdom](https://github.com/facebookresearch/visdom).
+
+**Documentation**: https://pytorch-mighty.readthedocs.io/en/latest/
 
 ![](images/training-progress.png)
 
