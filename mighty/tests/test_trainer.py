@@ -45,7 +45,7 @@ class TrainerTestCase(unittest.TestCase):
                               optimizer=self.optimizer,
                               scheduler=self.scheduler)
         loss_epochs = trainer.train(n_epochs=1, mutual_info_layers=0)
-        assert_array_almost_equal(loss_epochs, [0.2287357747])
+        assert_array_almost_equal(loss_epochs, [0.219992])
 
     def test_TrainerGrad_MutualInfo(self):
         set_seed(2)
