@@ -1,3 +1,16 @@
+"""
+Timer and schedulers
+--------------------
+
+.. autosummary::
+    :toctree: toctree/monitor
+
+    BatchTimer
+    ScheduleStep
+    ScheduleExp
+"""
+
+
 import math
 from abc import ABC, abstractmethod
 from functools import wraps
@@ -5,28 +18,71 @@ from typing import Callable
 
 
 class BatchTimer:
+    """
+    A global batch timer.
+    """
 
     def __init__(self):
-        self.batches_in_epoch = 1  # will be set next
+        self.batches_in_epoch = 1  # will be set later on
         self.batch_id = 0
 
-    def init(self, batches_in_epoch: int):
+    def init(self, batches_in_epoch):
+        """
+        Initialize the timer by providing the epoch length.
+
+        Parameters
+        ----------
+        batches_in_epoch : int
+            The number of batches in an epoch.
+
+        """
         self.batches_in_epoch = batches_in_epoch
 
     @property
     def epoch(self):
+        """
+        Returns
+        -------
+        int
+            Epoch id.
+        """
         return int(self.epoch_progress())
 
     def epoch_progress(self):
+        """
+        Returns
+        -------
+        float
+            Epoch progress.
+        """
         return self.batch_id / self.batches_in_epoch
 
     def is_epoch_finished(self):
+        """
+        Returns
+        -------
+        bool
+            Whether it's the end of an epoch (True) or in the middle of
+            training (False).
+        """
         return self.batch_id > 0 and self.batch_id % self.batches_in_epoch == 0
 
     def tick(self):
+        """
+        Increments the number of elapsed batches by 1.
+        """
         self.batch_id += 1
 
     def set_epoch(self, epoch):
+        """
+        Manually set the epoch.
+
+        Parameters
+        ----------
+        epoch : int
+            A new epoch.
+
+        """
         self.batch_id = self.batches_in_epoch * epoch
 
 
@@ -44,7 +100,10 @@ class Schedule(ABC):
     @abstractmethod
     def next_batch_update(self):
         """
-        :return: the next batch when update is needed
+        Returns
+        -------
+        int
+            The next batch id when an update is needed.
         """
         return 0
 
@@ -62,7 +121,20 @@ class Schedule(ABC):
 
 
 class ScheduleStep(Schedule):
-    def __init__(self, epoch_step: int = 1, batch_step: int = 0):
+    """
+    Performs an update each ``epoch_step * timer.epoch_size + batch_step``
+    batches.
+
+    Parameters
+    ----------
+    epoch_step : int, optional
+        Each epoch step.
+        Default: 1
+    batch_step : int, optional
+        Each batch step.
+        Default: 0
+    """
+    def __init__(self, epoch_step=1, batch_step=0):
         super().__init__()
         self.epoch_step = epoch_step
         self.batch_step = batch_step

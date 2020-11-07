@@ -46,9 +46,7 @@ from mighty.utils.data import DataLoader
 
 model = MLP(784, 128, 10)
 
-optimizer = torch.optim.Adam(
-    filter(lambda param: param.requires_grad, model.parameters()), lr=1e-3,
-    weight_decay=1e-5)
+optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer)
 
 transform = transforms.Compose([

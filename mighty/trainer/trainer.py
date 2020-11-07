@@ -1,13 +1,3 @@
-"""
-A Trainer base class.
-
-.. autosummary::
-    :toctree: toctree/trainer/
-
-    Trainer
-
-"""
-
 import subprocess
 import sys
 import time
@@ -47,7 +37,7 @@ __all__ = [
 
 class Trainer(ABC):
     """
-    A base trainer.
+    Trainer base class.
 
     Parameters
     ----------
@@ -463,8 +453,8 @@ class Trainer(ABC):
         sample_max_proba = proba_max.argmax()
         image = images[sample_max_proba]
         label = labels[sample_max_proba]
-        self.monitor.plot_mask(self.model, mask_trainer=mask_trainer,
-                               image=image, label=label)
+        self.monitor.plot_explain_input_mask(self.model, mask_trainer=mask_trainer,
+                                             image=image, label=label)
         mode_saved.restore(self.model)
         return image, label
 

@@ -1,3 +1,19 @@
+"""
+Mutual Information Estimates
+----------------------------
+
+.. autosummary::
+    :toctree: toctree/monitor
+
+    MutualInfoNeuralEstimation
+    MutualInfoGCMI
+    MutualInfoIDTxl
+    MutualInfoNPEET
+    MutualInfoKMeans
+    MutualInfoStub
+"""
+
+
 from .gcmi import MutualInfoGCMI
 from .kmeans import MutualInfoKMeans
 from .neural_estimation import MutualInfoNeuralEstimation

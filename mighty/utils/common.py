@@ -1,9 +1,5 @@
 """
-Commonly used utility functions
--------------------------------
-
-Finding a layer
-~~~~~~~~~~~~~~~
+Finding a layer.
 
 .. autosummary::
     :toctree: toctree/utils/
@@ -12,8 +8,7 @@ Finding a layer
     find_named_layers
 
 
-Working with batches
-~~~~~~~~~~~~~~~~~~~~
+Working with batches.
 
 .. autosummary::
     :toctree: toctree/utils/
@@ -23,8 +18,7 @@ Working with batches
     clone_cpu
 
 
-Miscellaneous
-~~~~~~~~~~~~~
+Miscellaneous.
 
 .. autosummary::
     :toctree: toctree/utils/

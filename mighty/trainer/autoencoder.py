@@ -1,14 +1,3 @@
-"""
-AutoEncoder trainer that not only transforms inputs to meaningful embeddings
-but also aims to restore the input signal from it.
-
-.. autosummary::
-    :toctree: toctree/trainer/
-
-    TrainerAutoencoder
-"""
-
-
 from typing import Union
 
 import torch
@@ -34,7 +23,9 @@ __all__ = [
 
 class TrainerAutoencoder(TrainerEmbedding):
     """
-    An unsupervised AutoEncoder trainer.
+    An unsupervised AutoEncoder trainer that not only transforms inputs to
+    meaningful embeddings but also aims to restore the input signal from it.
+
 
     Parameters
     ----------

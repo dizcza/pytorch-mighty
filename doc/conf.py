@@ -48,6 +48,9 @@ templates_path = ['_templates']
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
+# Required to automatically create a summary page for each function listed in
+# the autosummary fields of each module.
+autosummary_generate = True
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -60,3 +63,7 @@ html_theme = 'alabaster'
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 # html_static_path = ['_static']
+
+# Suppresses  wrong numpy doc warnings
+# see here https://github.com/phn/pytpm/issues/3#issuecomment-12133978
+numpydoc_show_class_members = False

@@ -1,3 +1,15 @@
+"""
+Accuracy measures
+-----------------
+
+.. autosummary::
+    :toctree: toctree/monitor
+
+    AccuracyArgmax
+    AccuracyEmbedding
+"""
+
+
 from abc import ABC
 
 import torch
@@ -19,33 +31,63 @@ class Accuracy(ABC):
         self.predicted_labels_cached = []
 
     def reset(self):
+        """
+        Resets all cached predicted and ground truth data.
+        """
         self.reset_labels()
 
     def reset_labels(self):
+        """
+        Resets predicted and ground truth **labels**.
+        """
         self.true_labels_cached.clear()
         self.predicted_labels_cached.clear()
 
     def partial_fit(self, outputs_batch, labels_batch):
         """
-        If accuracy measure is not argmax (if the model doesn't end with a softmax layer),
-        the output is embedding vector, which has to be stored and retrieved at prediction.
-        :param outputs_train: model output on the train set
-        :param labels_train: train set labels
+        If the accuracy measure is not argmax (if the model's last layer isn't
+        a softmax), the output is an embedding vector, which has to be stored
+        and retrieved at prediction.
+
+        Parameters
+        ----------
+        outputs_batch : torch.Tensor or tuple
+            The output of a model.
+        labels_batch : torch.Tensor
+            True labels.
         """
         self.true_labels_cached.append(labels_batch.cpu())
 
     def predict(self, outputs_test):
         """
-        :param outputs_test: model output on the train or test set
-        :return: predicted labels of shape (N,)
+        Predict the labels, given model output.
+
+        Parameters
+        ----------
+        output_test : torch.Tensor or tuple
+            The output of a model.
+
+        Returns
+        -------
+        torch.Tensor
+            Predicted labels.
         """
         return self.predict_proba(outputs_test).argmax(dim=1)
 
     def predict_proba(self, outputs_test):
         """
-        :param outputs_test: model output on the train or test set
-        :return: predicted probabilities tensor of shape (N x C),
-                 where C is the number of classes
+        Compute label probabilities, given model output.
+
+        Parameters
+        ----------
+        output_test : torch.Tensor or tuple
+            The output of a model.
+
+        Returns
+        -------
+        torch.Tensor
+            The probabilities of assigning to each class of shape `(., C)`,
+            where C is the number of classes.
         """
         raise NotImplementedError
 
@@ -57,6 +99,11 @@ class Accuracy(ABC):
 
 
 class AccuracyArgmax(Accuracy):
+    """
+    Softmax accuracy.
+
+    The predicted labels are simply ``output.argmax(dim=-1)``.
+    """
 
     def predict(self, outputs_test):
         labels_predicted = outputs_test.argmax(dim=-1)
@@ -77,6 +124,16 @@ class AccuracyEmbedding(Accuracy):
     Calculates the accuracy of embedding vectors.
     The mean embedding vector is kept for each class.
     Prediction is based on the closest centroid ID.
+
+    Parameters
+    ----------
+    metric : str, optional
+        The metric to compute pairwise distances with.
+        Default: 'cosine'
+    cache : bool, optional
+        Cache predicted data or not.
+        Default: False
+
     """
 
     def __init__(self, metric='cosine', cache=False):
@@ -88,11 +145,24 @@ class AccuracyEmbedding(Accuracy):
 
     @property
     def centroids(self):
+        """
+        Returns
+        -------
+        torch.Tensor
+            `(C, N)` mean centroids tensor, where C is the number of unique
+            classes, and N is the hidden layer dimensionality.
+        """
         centroids = self.centroids_dict.get_mean()
         return centroids
 
     @property
     def is_fit(self):
+        """
+        Returns
+        -------
+        bool
+            Whether the accuracy predictor is fit with data or not.
+        """
         return len(self.centroids_dict) > 0
 
     def reset(self):
@@ -105,8 +175,17 @@ class AccuracyEmbedding(Accuracy):
 
     def distances(self, outputs_test):
         """
-        :param outputs_test: (B, D) embeddings tensor
-        :return: (B, n_classes) distance matrix to each centroid
+        Returns the distances to fit centroid means.
+
+        Parameters
+        ----------
+        outputs_test : (B, D) torch.Tensor
+            Hidden layer activations.
+
+        Returns
+        -------
+        distances : (B, C) torch.Tensor
+            Distances to each class (label).
         """
         assert len(self.centroids_dict) > 0, "Fit the classifier first"
         centroids = torch.as_tensor(self.centroids, device=outputs_test.device)
@@ -131,6 +210,14 @@ class AccuracyEmbedding(Accuracy):
             self.input_cached.append(outputs_batch)
 
     def predict_cached(self):
+        """
+        Predicts the output of a model, using cached output activations.
+
+        Returns
+        -------
+        torch.Tensor
+            Predicted labels.
+        """
         if not self.cache:
             raise ValueError("Caching is turned off")
         if len(self.input_cached) == 0:

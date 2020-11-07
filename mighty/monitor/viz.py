@@ -1,8 +1,17 @@
+"""
+Visdom server
+-------------
+
+.. autosummary::
+    :toctree: toctree/monitor
+
+    VisdomMighty
+"""
+
 import os
 import sys
 import time
 from collections import defaultdict
-from typing import Union, List
 
 import numpy as np
 import visdom
@@ -12,7 +21,19 @@ from mighty.utils.constants import VISDOM_LOGS_DIR
 
 
 class VisdomMighty(visdom.Visdom):
-    def __init__(self, env: str = "main", offline=False):
+    """
+    A Visdom server that updates measures in online fashion.
+
+    Parameters
+    ----------
+    env : str, optional
+        Environment name.
+        Default: "main"
+    offile : bool, optional
+        Online (False) or offline (True) mode.
+        Default: False
+    """
+    def __init__(self, env="main", offline=False):
         port = int(os.environ.get('VISDOM_PORT', 8097))
         server = os.environ.get('VISDOM_SERVER', 'http://localhost')
         base_url = os.environ.get('VISDOM_BASE_URL', '/')
@@ -44,9 +65,9 @@ class VisdomMighty(visdom.Visdom):
             url = f"{self.server}:{self.port}{self.base_url}"
             print(f"Monitor is opened at {url}. "
                   f"Choose environment '{self.env}'.")
-            self.register_comments_window()
+            self._register_comments_window()
 
-    def register_comments_window(self):
+    def _register_comments_window(self):
         txt_init = "Enter comments:"
         win = 'comments'
 
@@ -66,7 +87,22 @@ class VisdomMighty(visdom.Visdom):
         self.text(txt_init, win=win)
         self.register_event_handler(type_callback, win)
 
-    def line_update(self, y: Union[float, List[float]], opts: dict, name=None):
+    def line_update(self, y, opts, name=None):
+        """
+        Appends `y` axis value to the plot. The `x` axis value will be
+        extracted from the global timer.
+
+        Parameters
+        ----------
+        y : float or list of float or torch.Tensor
+            The Y axis value.
+        opts : dict
+            Visdom plot `opts`.
+        name : str or None, optional
+            The label name of this plot. Used when a plot has a legend.
+            Default: None
+
+        """
         y = np.array([y])
         n_lines = y.shape[-1]
         if n_lines == 0:
@@ -85,6 +121,14 @@ class VisdomMighty(visdom.Visdom):
         if name is not None:
             self.update_window_opts(win=win, opts=dict(legend=[], title=win))
 
-    def log(self, text: str):
+    def log(self, text):
+        """
+        Log the text.
+
+        Parameters
+        ----------
+        text : str
+            Text
+        """
         self.text(f"{time.strftime('%Y-%b-%d %H:%M')} {text}",
                   win='log', append=self.win_exists(win='log'))

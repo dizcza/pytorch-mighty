@@ -59,8 +59,8 @@ def train_mask():
     proba = accuracy_measure.predict_proba(outputs)
     proba_max, label_true = proba[0].max(dim=0)
     print(f"True label: {label_true} (confidence {proba_max: .5f})")
-    monitor.plot_mask(model=model, mask_trainer=mask_trainer, image=image,
-                      label=label_true)
+    monitor.plot_explain_input_mask(model=model, mask_trainer=mask_trainer,
+                                    image=image, label=label_true)
 
 
 def train_grad(n_epoch=10, dataset_cls=MNIST):

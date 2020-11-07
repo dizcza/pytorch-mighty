@@ -1,6 +1,5 @@
 """
-An Optimizer stub for trainers that update model weights in a gradient-free
-fashion.
+Stubs.
 
 .. autosummary::
     :toctree: toctree/utils/
@@ -15,6 +14,10 @@ from torch.optim.optimizer import Optimizer
 
 
 class OptimizerStub(Optimizer):
+    """
+    An Optimizer stub for trainers that update model weights in a gradient-free
+    fashion.
+    """
 
     def __init__(self):
         self.param_groups = []

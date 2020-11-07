@@ -1,13 +1,3 @@
-"""
-A basic gradient-based trainer.
-
-.. autosummary::
-    :toctree: toctree/trainer/
-
-    TrainerGrad
-
-"""
-
 from typing import Union
 
 import torch.nn as nn

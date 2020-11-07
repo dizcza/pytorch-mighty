@@ -1,0 +1,5 @@
+********
+Trainers
+********
+
+.. automodule:: mighty.trainer

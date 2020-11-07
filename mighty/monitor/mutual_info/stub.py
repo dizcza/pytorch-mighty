@@ -4,7 +4,9 @@ from mighty.monitor.mutual_info.mutual_info import MutualInfo
 
 
 class MutualInfoStub(MutualInfo):
-    # Stub to work with the Monitor
+    """
+    Mutual Info stub that does nothing.
+    """
 
     def __init__(self):
         pass

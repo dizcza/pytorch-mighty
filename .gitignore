@@ -11,3 +11,4 @@ dist/
 build/
 visdom_logs/
 doc/_build
+*toctree*

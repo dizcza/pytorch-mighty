@@ -1,13 +1,3 @@
-"""
-An unsupervised trainer that transforms inputs to meaningful embeddings.
-
-.. autosummary::
-    :toctree: toctree/trainer/
-
-    TrainerEmbedding
-
-"""
-
 from typing import Union
 
 import torch.nn as nn
@@ -29,7 +19,7 @@ __all__ = [
 
 class TrainerEmbedding(TrainerGrad):
     """
-    An (unsupervised) trainer with the goal to transform input data into
+    An (unsupervised) trainer that transforms input data into
     linearly-separable embedding vectors that form clusters.
 
     Parameters

@@ -32,9 +32,10 @@ def create_gaussian_filter(size: int, sigma: float, channels: int):
     return gaussian_filter
 
 
-class MaskTrainerIndex:
+class MaskTrainerNeuron:
     """
-    Reduce output value of specific neuron.
+    Train a mask that applied onto input image reduces output value of a
+    specific neuron.
     """
 
     tv_beta = 1
@@ -89,10 +90,16 @@ class MaskTrainerIndex:
         return f"{self.__class__.__name__}(mask_size={self.mask_size}, gaussian_filter={self.gaussian_filter})"
 
 
-class MaskTrainer(MaskTrainerIndex):
+class MaskTrainer(MaskTrainerNeuron):
     """
-    Interpretable Explanations of Black Boxes by Meaningful Perturbation.
-    https://arxiv.org/pdf/1704.03296.pdf
+    Interpretable Explanations of Black Boxes by Meaningful Perturbation [1]_.
+
+    References
+    ----------
+    1. Fong, R. C., & Vedaldi, A. (2017). Interpretable explanations of
+       black boxes by meaningful perturbation. In Proceedings of the IEEE
+       International Conference on Computer Vision (pp. 3429-3437).
+
     """
 
     def __init__(self, accuracy_measure: Accuracy, image_shape: torch.Size, show_progress=False):

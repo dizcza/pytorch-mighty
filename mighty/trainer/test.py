@@ -1,14 +1,3 @@
-"""
-A Test trainer that only evaluates a model.
-
-.. autosummary::
-    :toctree: toctree/trainer/
-
-    Test
-
-"""
-
-
 from .trainer import Trainer
 
 
