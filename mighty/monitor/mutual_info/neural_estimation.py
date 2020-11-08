@@ -168,7 +168,7 @@ class MutualInfoNeuralEstimation(MutualInfoPCA):
 
     References
     ----------
-    1. Belghazi, M. I., Baratin, A., Rajeswar, S., Ozair, S., Bengio, Y.,
+    .. [1] Belghazi, M. I., Baratin, A., Rajeswar, S., Ozair, S., Bengio, Y.,
        Courville, A., & Hjelm, R. D. (2018). Mine: mutual information neural
        estimation. arXiv preprint arXiv:1801.04062.
     """

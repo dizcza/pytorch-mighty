@@ -208,7 +208,7 @@ class MutualInfoGCMI(MutualInfoPCA):
 
     References
     ----------
-    1. RAA Ince, BL Giordano, C Kayser, GA Rousselet, J Gross and PG Schyns
+    .. [1] RAA Ince, BL Giordano, C Kayser, GA Rousselet, J Gross and PG Schyns
        "A statistical framework for neuroimaging data analysis based on mutual
        information estimated via a Gaussian copula" Human Brain Mapping (2017)
        38 p. 1541-1573 doi:10.1002/hbm.23471.

@@ -65,7 +65,7 @@ class Trainer(ABC):
 
     References
     ----------
-    1. Shwartz-Ziv, R., & Tishby, N. (2017). Opening the black box of deep
+    .. [1] Shwartz-Ziv, R., & Tishby, N. (2017). Opening the black box of deep
        neural networks via information. arXiv preprint arXiv:1703.00810.
 
     Notes
@@ -565,9 +565,9 @@ class Trainer(ABC):
 
         References
         ----------
-        1. Shwartz-Ziv, R., & Tishby, N. (2017). Opening the black box of deep
+        .. [1] Shwartz-Ziv, R., & Tishby, N. (2017). Opening the black box of deep
            neural networks via information. arXiv preprint arXiv:1703.00810.
-        2. Fong, R. C., & Vedaldi, A. (2017). Interpretable explanations of
+        .. [1] Fong, R. C., & Vedaldi, A. (2017). Interpretable explanations of
            black boxes by meaningful perturbation.
 
         """

@@ -100,7 +100,7 @@ class ContrastiveLossSampler(PairLossSampler):
 
     References
     ----------
-    1. Hadsell, R., Chopra, S., & LeCun, Y. (2006, June). Dimensionality
+    .. [1] Hadsell, R., Chopra, S., & LeCun, Y. (2006, June). Dimensionality
        reduction by learning an invariant mapping. In 2006 IEEE Computer
        Society Conference on Computer Vision and Pattern Recognition (CVPR'06)
        (Vol. 2, pp. 1735-1742). IEEE.

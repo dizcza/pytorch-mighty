@@ -549,7 +549,7 @@ class Monitor:
 
         References
         ----------
-        1. Fong, R. C., & Vedaldi, A. (2017). Interpretable explanations of
+        .. [1] Fong, R. C., & Vedaldi, A. (2017). Interpretable explanations of
            black boxes by meaningful perturbation. In Proceedings of the IEEE
            International Conference on Computer Vision (pp. 3429-3437).
 

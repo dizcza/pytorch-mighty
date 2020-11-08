@@ -142,7 +142,7 @@ class MutualInfoNPEET(MutualInfoPCA):
 
     References
     ----------
-    1. https://github.com/gregversteeg/NPEET
+    .. [1] https://github.com/gregversteeg/NPEET
 
     """
 

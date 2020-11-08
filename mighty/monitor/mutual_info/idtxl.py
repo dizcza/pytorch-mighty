@@ -35,7 +35,7 @@ class MutualInfoIDTxl(MutualInfoPCA):
 
     References
     ----------
-    1. P. Wollstadt, J. T. Lizier, R. Vicente, C. Finn, M. Martinez-Zarzuela,
+    .. [1] P. Wollstadt, J. T. Lizier, R. Vicente, C. Finn, M. Martinez-Zarzuela,
        P. Mediano, L. Novelli, M. Wibral (2018). IDTxl: The Information
        Dynamics Toolkit xl: a Python package for the efficient analysis of
        multivariate information dynamics in networks. Journal of Open Source

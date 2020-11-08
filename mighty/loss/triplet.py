@@ -51,7 +51,7 @@ class TripletLossSampler(PairLossSampler):
 
     References
     ----------
-    1. Schroff, F., Kalenichenko, D., & Philbin, J. (2015). Facenet: A unified
+    .. [1] Schroff, F., Kalenichenko, D., & Philbin, J. (2015). Facenet: A unified
        embedding for face recognition and clustering. In Proceedings of the
        IEEE conference on computer vision and pattern recognition (pp.
        815-823).
