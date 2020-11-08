@@ -127,7 +127,7 @@ def dataset_mean_std(dataset_cls: type):
                 loader,
                 desc=f"{dataset_cls.__name__}: running online mean, std"):
             input = input_from_batch(batch)
-            var_online.update(new_tensor=input)
+            var_online.update(input)
         mean, std = var_online.get_mean_std()
         mean_std_file.parent.mkdir(exist_ok=True, parents=True)
         with open(mean_std_file, 'wb') as f:
