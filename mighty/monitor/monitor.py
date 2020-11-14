@@ -37,7 +37,7 @@ from mighty.monitor.mutual_info.stub import MutualInfoStub
 from mighty.monitor.var_online import VarianceOnline
 from mighty.monitor.viz import VisdomMighty
 from mighty.utils.common import clone_cpu
-from mighty.utils.domain import AdversarialExamples, MonitorLevel
+from mighty.utils.domain import MonitorLevel
 
 
 class ParamRecord:
@@ -477,55 +477,6 @@ class Monitor:
                 ylabel='True label',
             ))
         return accuracy
-
-    def plot_adversarial_examples(self, model, adversarial_examples,
-                                  n_show=10):
-        """
-        Plot adversarial examples.
-
-        Parameters
-        ----------
-        model : nn.Module
-            The model.
-        adversarial_examples : AdversarialExamples
-            A namedtuple with three items:
-            `images_orig, images_adv, labels_true`.
-        n_show : int, optional
-            The number of adversarial examples to show.
-            Default: 10
-        """
-        images_orig, images_adv, labels_true = adversarial_examples
-        saved_mode = model.training
-        model.eval()
-        with torch.no_grad():
-            outputs_orig = model(images_orig)
-            outputs_adv = model(images_adv)
-        model.train(saved_mode)
-        accuracy_orig = calc_accuracy(
-            labels_true=labels_true,
-            labels_predicted=self.accuracy_measure.predict(outputs_orig))
-        accuracy_adv = calc_accuracy(
-            labels_true=labels_true,
-            labels_predicted=self.accuracy_measure.predict(outputs_adv))
-        self.update_accuracy(accuracy=accuracy_orig, mode='batch')
-        self.update_accuracy(accuracy=accuracy_adv, mode='adversarial')
-        images_stacked = []
-        images_orig, images_adv = images_orig.cpu(), images_adv.cpu()
-        for images in (images_orig, images_adv):
-            n_show = min(n_show, len(images))
-            images = images[: n_show]
-            if self.normalize_inverse is not None:
-                images = list(map(self.normalize_inverse, images))
-                images = torch.cat(images, dim=2)
-            images_stacked.append(images)
-        adv_noise = images_stacked[1] - images_stacked[0]
-        adv_noise -= adv_noise.min()
-        adv_noise /= adv_noise.max()
-        images_stacked.insert(1, adv_noise)
-        images_stacked = torch.cat(images_stacked, dim=1)
-        images_stacked.clamp_(0, 1)
-        self.viz.image(images_stacked, win='Adversarial examples',
-                       opts=dict(title='Adversarial examples'))
 
     def plot_explain_input_mask(self, model, mask_trainer, image, label,
                                 win_suffix=''):

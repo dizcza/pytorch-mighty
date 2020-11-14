@@ -26,7 +26,6 @@ from mighty.utils.common import find_named_layers, batch_to_cuda, \
     input_from_batch
 from mighty.utils.constants import CHECKPOINTS_DIR
 from mighty.utils.data import DataLoader
-from mighty.utils.domain import AdversarialExamples
 from mighty.utils.prepare import prepare_eval
 
 
@@ -458,44 +457,6 @@ class Trainer(ABC):
         mode_saved.restore(self.model)
         return image, label
 
-    def get_adversarial_examples(self, noise_ampl=100, n_iter=10):
-        """
-        Takes the first batch of images, creates the adversarial examples, and
-        returns the result.
-
-        Parameters
-        ----------
-        noise_ampl : float
-            Adversarial noise amplitude.
-        n_iter: int
-            Adversarial iterations to run.
-
-        Returns
-        -------
-        AdversarialExamples
-            Original, adversarial images and the true labels.
-
-        """
-        images, labels = next(iter(self.train_loader))
-        if torch.cuda.is_available():
-            images = images.cuda()
-            labels = labels.cuda()
-        images_orig = images.clone()
-        images.requires_grad_(True)
-        mode_saved = prepare_eval(self.model)
-        for i in range(n_iter):
-            images.grad = None  # reset gradients tensor
-            outputs = self.model(images)
-            loss = self._get_loss((images, labels), outputs)
-            loss.backward()
-            with torch.no_grad():
-                adv_noise = noise_ampl * images.grad
-                images += adv_noise
-        images.requires_grad_(False)
-        mode_saved.restore(self.model)
-        return AdversarialExamples(original=images_orig, adversarial=images,
-                                   labels=labels)
-
     def train_epoch(self, epoch):
         """
         Trains an epoch.
@@ -537,8 +498,7 @@ class Trainer(ABC):
             self.monitor.open(env_name=self.env_name, offline=offline)
             self.monitor.clear()
 
-    def train(self, n_epochs=10, mutual_info_layers=0,
-              adversarial=False, mask_explain=False):
+    def train(self, n_epochs=10, mutual_info_layers=0, mask_explain=False):
         """
         User-entry function to train the model for :code:`n_epochs`.
 
@@ -552,9 +512,6 @@ class Trainer(ABC):
             :code:`mutual_info_layers` layers at each epoch. If set to 0,
             skip the (time-consuming) mutual information estimation.
             Default: 0
-        adversarial : bool
-            Show the adversarial examples or not.
-            Default: False
         mask_explain : bool
             Show the saliency map [2]_ or not.
 
@@ -595,10 +552,6 @@ class Trainer(ABC):
             loss = self.full_forward_pass(train=True)
             self.full_forward_pass(train=False)
             self.monitor.epoch_finished()
-            if adversarial:
-                self.monitor.plot_adversarial_examples(
-                    self.model,
-                    self.get_adversarial_examples())
             if mask_explain:
                 self.train_mask()
             self._epoch_finished(loss)

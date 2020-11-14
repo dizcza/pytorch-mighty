@@ -1,15 +1,9 @@
-from collections import namedtuple
 from enum import Enum, unique
 
 
 __all__ = [
-    "AdversarialExamples",
     "MonitorLevel"
 ]
-
-
-AdversarialExamples = namedtuple("AdversarialExamples",
-                                 ("original", "adversarial", "labels"))
 
 
 @unique
