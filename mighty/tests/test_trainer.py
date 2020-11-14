@@ -11,6 +11,7 @@ from mighty.loss import *
 from mighty.models import MLP, AutoencoderLinear
 from mighty.monitor.accuracy import AccuracyEmbedding
 from mighty.monitor.mutual_info import MutualInfoNPEET
+from mighty.monitor.monitor import MonitorLevel
 from mighty.trainer import *
 from mighty.utils.common import set_seed
 from mighty.utils.data import TransformDefault, DataLoader
@@ -44,8 +45,11 @@ class TrainerTestCase(unittest.TestCase):
                               data_loader=self.data_loader,
                               optimizer=self.optimizer,
                               scheduler=self.scheduler)
-        loss_epochs = trainer.train(n_epochs=1, mutual_info_layers=0)
+        loss_epochs = trainer.train(n_epochs=1, mutual_info_layers=0,
+                                    mask_explain_params=dict())
         assert_array_almost_equal(loss_epochs, [0.219992])
+        trainer.save()
+        trainer.restore()
 
     def test_TrainerGrad_MutualInfo(self):
         set_seed(2)
@@ -65,6 +69,7 @@ class TrainerTestCase(unittest.TestCase):
                               mutual_info=MutualInfoNPEETDebug(
                                   data_loader=data_loader, pca_size=None),
                               scheduler=self.scheduler)
+        trainer.monitor.advanced_monitoring(level=MonitorLevel.FULL)
         trainer.train(n_epochs=1, mutual_info_layers=1)
         mi_history = np.vstack(mi_history)
         assert_array_less(0, mi_history)

@@ -50,11 +50,14 @@ class TestModels(unittest.TestCase):
     def test_SerializableModule(self):
         model = SerializableModule()
         tensor = torch.arange(5)
-        model.register_buffer(name="t1", tensor=tensor)
         model.state_attr = ["t1"]
+        model.t1 = tensor
         state_dict = model.state_dict()
         self.assertTrue("t1" in state_dict)
         assert_array_equal(state_dict["t1"], tensor)
+        missing, unexpected = model.load_state_dict(state_dict)
+        self.assertEqual(missing, [])
+        self.assertEqual(unexpected, [])
 
 
 if __name__ == '__main__':

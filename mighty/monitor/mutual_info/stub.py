@@ -3,7 +3,7 @@ import torch.nn as nn
 from mighty.monitor.mutual_info.mutual_info import MutualInfo
 
 
-class MutualInfoStub(MutualInfo):
+class MutualInfoStub(MutualInfo):  # pragma: no cover
     """
     Mutual Info stub that does nothing.
     """
