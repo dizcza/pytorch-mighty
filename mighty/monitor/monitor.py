@@ -489,7 +489,7 @@ class Monitor:
         model : nn.Module
             The model.
         mask_trainer : MaskTrainer
-            The instance of :class:`MaskTrainer` or :class:`MaskTrainerNeuron`.
+            The instance of :class:`MaskTrainer`.
         image : torch.Tensor
             The input image to investigate and plot the mask on.
         label : int
@@ -517,8 +517,9 @@ class Monitor:
         proba_perturbed = forward_probability(image_perturbed)
         image, mask, image_perturbed = image.cpu(), mask.cpu(), \
                                        image_perturbed.cpu()
-        image = self.normalize_inverse(image)
-        image_perturbed = self.normalize_inverse(image_perturbed)
+        if self.normalize_inverse is not None:
+            image = self.normalize_inverse(image)
+            image_perturbed = self.normalize_inverse(image_perturbed)
         image_masked = mask * image
         images_stacked = torch.stack(
             [image, mask, image_masked, image_perturbed], dim=0)

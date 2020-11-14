@@ -3,10 +3,14 @@ import torch.nn as nn
 import torch.nn.functional
 from tqdm import trange
 
-from mighty.monitor.accuracy import Accuracy
+from mighty.monitor.accuracy import Accuracy, AccuracyArgmax
 
 
 def tv_norm(mask_expanded, tv_beta: int):
+    """
+    Mask gradient (approximate) cost.
+    """
+    # (1, 1, H, W)
     mask = mask_expanded[0, 0, ::]
     row_grad = (mask[:-1, :] - mask[1:, :]).abs().pow(tv_beta).mean()
     col_grad = (mask[:, :-1] - mask[:, 1:]).abs().pow(tv_beta).mean()
@@ -33,30 +37,46 @@ def create_gaussian_filter(size: int, sigma: float, channels: int):
     return gaussian_filter
 
 
-class MaskTrainerNeuron:
+class MaskTrainer:
     """
-    Train an occlusion mask that, applied on an input image, reduces the
-    output value of a specific neuron.
+    Interpretable Explanations of Black Boxes by Meaningful Perturbation [1]_.
+
+    Train an occlusion mask that shows where a neural network "looks at" in the
+    input space.
 
     Parameters
     ----------
+    accuracy_measure : Accuracy
+        Accuracy estimator.
     image_shape : tuple
         The shape of an input image.
+    learning_rate : float, optional
+        Optimizer learning rate.
+        Default: 0.1
     show_progress : bool, optional
         Show the training progress bar or not.
         Default: False
+
+    References
+    ----------
+    .. [1] Fong, R. C., & Vedaldi, A. (2017). Interpretable explanations of
+       black boxes by meaningful perturbation. In Proceedings of the IEEE
+       International Conference on Computer Vision (pp. 3429-3437).
+
     """
 
     tv_beta = 1
-    learning_rate = 0.1
     max_iterations = 100
     l1_coeff = 0.01
     tv_coeff = 0.2
     mask_size = 10
 
-    def __init__(self, image_shape, show_progress=False):
-        kernel_size = 2 * int(image_shape[1] ** 0.5 // 2) + 1
+    def __init__(self, image_shape, accuracy_measure=AccuracyArgmax(),
+                 learning_rate=0.1, show_progress=False):
         self.image_shape = image_shape
+        self.accuracy_measure = accuracy_measure
+        self.learning_rate = learning_rate
+        kernel_size = 2 * int(image_shape[1] ** 0.5 // 2) + 1
         self.gaussian_filter = create_gaussian_filter(size=kernel_size,
                                                       sigma=2*kernel_size,
                                                       channels=image_shape[0])
@@ -92,9 +112,13 @@ class MaskTrainerNeuron:
         channels, height, width = image.shape
         image = image.unsqueeze(dim=0)
         image_blurred = self.gaussian_filter(self.padding(image))
+
+        # 1 - take input pixel
+        # 0 - cover with mask
         mask = nn.Parameter(torch.ones(self.mask_size, self.mask_size,
                                        dtype=torch.float32,
                                        device=image.device))
+
         optimizer = torch.optim.Adam([mask], lr=self.learning_rate)
         loss_trace = []
         mask_upsampled = None
@@ -140,42 +164,9 @@ class MaskTrainerNeuron:
             The probability of ``outputs[label]``.
 
         """
-        return outputs[0, label]
+        proba = self.accuracy_measure.predict_proba(outputs)[0, label]
+        return proba
 
     def __repr__(self):
         return f"{self.__class__.__name__}(mask_size={self.mask_size}, " \
                f"gaussian_filter={self.gaussian_filter})"
-
-
-class MaskTrainer(MaskTrainerNeuron):
-    """
-    Interpretable Explanations of Black Boxes by Meaningful Perturbation [1]_.
-
-    Train an occlusion mask that shows where a neural network "looks at" in the
-    input space.
-
-    Parameters
-    ----------
-    accuracy_measure : Accuracy
-        Accuracy estimator.
-    image_shape : tuple
-        The shape of an input image.
-    show_progress : bool, optional
-        Show the training progress bar or not.
-        Default: False
-
-    References
-    ----------
-    .. [1] Fong, R. C., & Vedaldi, A. (2017). Interpretable explanations of
-       black boxes by meaningful perturbation. In Proceedings of the IEEE
-       International Conference on Computer Vision (pp. 3429-3437).
-
-    """
-
-    def __init__(self, accuracy_measure, image_shape, show_progress=False):
-        super().__init__(image_shape=image_shape, show_progress=show_progress)
-        self.accuracy_measure = accuracy_measure
-
-    def get_probability(self, outputs, label):
-        proba = self.accuracy_measure.predict_proba(outputs)[0, label]
-        return proba

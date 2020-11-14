@@ -27,12 +27,11 @@ Interpretable mask trainers
     :toctree: toctree/trainer
 
     MaskTrainer
-    MaskTrainerNeuron
 """
 
 from .autoencoder import TrainerAutoencoder
 from .embedding import TrainerEmbedding
 from .gradient import TrainerGrad
-from .mask import MaskTrainer, MaskTrainerNeuron
+from .mask import MaskTrainer
 from .test import Test
 from .trainer import Trainer

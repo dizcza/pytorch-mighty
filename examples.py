@@ -85,7 +85,7 @@ def test(model, n_epoch=500, dataset_cls=MNIST):
     criterion = nn.CrossEntropyLoss()
     data_loader = DataLoader(dataset_cls, TransformDefault.mnist())
     trainer = Test(model=model, criterion=criterion, data_loader=data_loader)
-    trainer.train(n_epochs=n_epoch, mask_explain=True)
+    trainer.train(n_epochs=n_epoch, mask_explain_params=dict())
 
 
 def train_autoencoder(n_epoch=60, dataset_cls=MNIST):

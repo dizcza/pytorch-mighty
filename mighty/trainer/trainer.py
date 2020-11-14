@@ -435,14 +435,20 @@ class Trainer(ABC):
 
         return accuracy
 
-    def train_mask(self):
+    def train_mask(self, mask_explain_params=dict()):
         """
         Train mask to see what part of an image is crucial from the network
         perspective (saliency map).
+
+        Parameters
+        ----------
+        mask_explain_params : dict, optional
+            `MaskTrainer` keyword arguments.
         """
         images, labels = next(iter(self.train_loader))
         mask_trainer = MaskTrainer(self.accuracy_measure,
-                                   image_shape=images[0].shape)
+                                   image_shape=images[0].shape,
+                                   **mask_explain_params)
         mode_saved = prepare_eval(self.model)
         if torch.cuda.is_available():
             images = images.cuda()
@@ -498,7 +504,8 @@ class Trainer(ABC):
             self.monitor.open(env_name=self.env_name, offline=offline)
             self.monitor.clear()
 
-    def train(self, n_epochs=10, mutual_info_layers=0, mask_explain=False):
+    def train(self, n_epochs=10, mutual_info_layers=0,
+              mask_explain_params=None):
         """
         User-entry function to train the model for :code:`n_epochs`.
 
@@ -507,13 +514,15 @@ class Trainer(ABC):
         n_epochs : int
             The number of epochs to run.
             Default: 10
-        mutual_info_layers : int
+        mutual_info_layers : int, optional
             Evaluate the mutual information [1]_ from the last
             :code:`mutual_info_layers` layers at each epoch. If set to 0,
             skip the (time-consuming) mutual information estimation.
             Default: 0
-        mask_explain : bool
-            Show the saliency map [2]_ or not.
+        mask_explain_params : dict or None, optional
+            If not None, a dictionary with parameters for :class:`MaskTrainer`,
+            that is used to show the "saliency map" [2]_.
+            Default: None
 
         Returns
         -------
@@ -552,8 +561,8 @@ class Trainer(ABC):
             loss = self.full_forward_pass(train=True)
             self.full_forward_pass(train=False)
             self.monitor.epoch_finished()
-            if mask_explain:
-                self.train_mask()
+            if mask_explain_params:
+                self.train_mask(mask_explain_params)
             self._epoch_finished(loss)
             loss_epochs.append(loss.item())
         return loss_epochs
