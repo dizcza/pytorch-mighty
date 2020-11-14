@@ -23,7 +23,8 @@ def create_gaussian_filter(size: int, sigma: float, channels: int):
     gaussian_kernel = torch.exp(-xy_grid.pow(2).sum(dim=-1) / (2 * sigma ** 2))
     # Make sure sum of values in gaussian kernel equals 1.
     gaussian_kernel /= gaussian_kernel.sum()
-    gaussian_kernel = gaussian_kernel.expand(channels, 1, *gaussian_kernel.shape)
+    gaussian_kernel = gaussian_kernel.expand(channels, 1,
+                                             *gaussian_kernel.shape)
 
     gaussian_filter = nn.Conv2d(in_channels=channels, out_channels=channels,
                                 kernel_size=size, groups=channels, bias=False)
@@ -34,8 +35,16 @@ def create_gaussian_filter(size: int, sigma: float, channels: int):
 
 class MaskTrainerNeuron:
     """
-    Train a mask that applied onto input image reduces output value of a
-    specific neuron.
+    Train an occlusion mask that, applied on an input image, reduces the
+    output value of a specific neuron.
+
+    Parameters
+    ----------
+    image_shape : tuple
+        The shape of an input image.
+    show_progress : bool, optional
+        Show the training progress bar or not.
+        Default: False
     """
 
     tv_beta = 1
@@ -45,54 +54,115 @@ class MaskTrainerNeuron:
     tv_coeff = 0.2
     mask_size = 10
 
-    def __init__(self, image_shape: torch.Size, show_progress=False):
+    def __init__(self, image_shape, show_progress=False):
         kernel_size = 2 * int(image_shape[1] ** 0.5 // 2) + 1
         self.image_shape = image_shape
-        self.gaussian_filter = create_gaussian_filter(size=kernel_size, sigma=2*kernel_size, channels=image_shape[0])
+        self.gaussian_filter = create_gaussian_filter(size=kernel_size,
+                                                      sigma=2*kernel_size,
+                                                      channels=image_shape[0])
         self.padding = nn.modules.ReflectionPad2d(padding=kernel_size // 2)
         self.show_progress = show_progress
         if torch.cuda.is_available():
             self.gaussian_filter.cuda()
             self.padding.cuda()
 
-    def train_mask(self, model: nn.Module, image, label_true):
+    def train_mask(self, model, image, label_true):
+        """
+        Train a grayscale occlusion mask.
+
+        Parameters
+        ----------
+        model : nn.Module
+            A neural network model.
+        image : (C, H, W) torch.Tensor
+            An input image.
+        label_true : int
+            The true class label of the image.
+
+        Returns
+        -------
+        mask_upsampled : torch.Tensor
+            The occlusion mask.
+        image_perturbed : torch.Tensor
+            The input image with the mask applied.
+        loss_trace : list of float
+            A list of training losses.
+
+        """
         channels, height, width = image.shape
         image = image.unsqueeze(dim=0)
         image_blurred = self.gaussian_filter(self.padding(image))
-        mask = nn.Parameter(torch.ones(self.mask_size, self.mask_size, dtype=torch.float32, device=image.device))
+        mask = nn.Parameter(torch.ones(self.mask_size, self.mask_size,
+                                       dtype=torch.float32,
+                                       device=image.device))
         optimizer = torch.optim.Adam([mask], lr=self.learning_rate)
         loss_trace = []
         mask_upsampled = None
         image_perturbed = None
-        for i in trange(self.max_iterations, desc="Training mask", disable=not self.show_progress, leave=False):
+        for i in trange(self.max_iterations, desc="Training a mask",
+                        disable=not self.show_progress, leave=False):
             mask_upsampled = mask.expand(1, channels, *mask.shape)
-            mask_upsampled = nn.functional.interpolate(mask_upsampled, size=(height, width), mode='bilinear',
+            mask_upsampled = nn.functional.interpolate(mask_upsampled,
+                                                       size=(height, width),
+                                                       mode='bilinear',
                                                        align_corners=True)
             optimizer.zero_grad()
             noise = torch.randn_like(image) * 0.2
-            image_perturbed = mask_upsampled * image + (1 - mask_upsampled) * image_blurred
+            image_perturbed = mask_upsampled * image + (
+                    1 - mask_upsampled) * image_blurred
             outputs = model(image_perturbed + noise)
             proba = self.get_probability(outputs=outputs, label=label_true)
             loss = self.l1_coeff * (1 - mask_upsampled).abs().mean() + \
-                   self.tv_coeff * tv_norm(mask_upsampled, self.tv_beta) + proba
+                   self.tv_coeff * tv_norm(mask_upsampled, self.tv_beta) + \
+                   proba
             loss.backward()
             optimizer.step()
             mask_upsampled.data.clamp_(0, 1)
             loss_trace.append(loss.item())
         mask_upsampled = mask_upsampled[0].detach()
         image_perturbed = image_perturbed[0].detach()
-        return mask_upsampled, loss_trace, image_perturbed
+        return mask_upsampled, image_perturbed, loss_trace
 
     def get_probability(self, outputs, label):
+        """
+        Returns the probability of the `label` class of the outputs.
+
+        Parameters
+        ----------
+        outputs : torch.Tensor
+            The output of a model.
+        label : int
+            The true class label.
+
+        Returns
+        -------
+        float
+            The probability of ``outputs[label]``.
+
+        """
         return outputs[0, label]
 
     def __repr__(self):
-        return f"{self.__class__.__name__}(mask_size={self.mask_size}, gaussian_filter={self.gaussian_filter})"
+        return f"{self.__class__.__name__}(mask_size={self.mask_size}, " \
+               f"gaussian_filter={self.gaussian_filter})"
 
 
 class MaskTrainer(MaskTrainerNeuron):
     """
     Interpretable Explanations of Black Boxes by Meaningful Perturbation [1]_.
+
+    Train an occlusion mask that shows where a neural network "looks at" in the
+    input space.
+
+    Parameters
+    ----------
+    accuracy_measure : Accuracy
+        Accuracy estimator.
+    image_shape : tuple
+        The shape of an input image.
+    show_progress : bool, optional
+        Show the training progress bar or not.
+        Default: False
 
     References
     ----------
@@ -102,7 +172,7 @@ class MaskTrainer(MaskTrainerNeuron):
 
     """
 
-    def __init__(self, accuracy_measure: Accuracy, image_shape: torch.Size, show_progress=False):
+    def __init__(self, accuracy_measure, image_shape, show_progress=False):
         super().__init__(image_shape=image_shape, show_progress=show_progress)
         self.accuracy_measure = accuracy_measure
 

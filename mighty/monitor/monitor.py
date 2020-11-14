@@ -560,7 +560,7 @@ class Monitor:
             proba = mask_trainer.get_probability(outputs=outputs, label=label)
             return proba
 
-        mask, loss_trace, image_perturbed = mask_trainer.train_mask(
+        mask, image_perturbed, loss_trace = mask_trainer.train_mask(
             model=model, image=image, label_true=label)
         proba_original = forward_probability(image)
         proba_perturbed = forward_probability(image_perturbed)
