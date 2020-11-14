@@ -23,6 +23,7 @@ setup(
     author_email="d.ulianych@gmail.com",
     description="The Mighty Monitor Trainer for your pytorch models.",
     long_description=long_description,
+    long_description_content_type="text/markdown",
     license="BSD-3",
     url='https://github.com/dizcza/pytorch-mighty',
     classifiers=[

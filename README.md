@@ -49,11 +49,7 @@ model = MLP(784, 128, 10)
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer)
 
-transform = transforms.Compose([
-    transforms.ToTensor(),
-    transforms.Normalize(mean=(0.1307,), std=(0.3081,))
-])
-data_loader = DataLoader(MNIST, transform=transforms)
+data_loader = DataLoader(MNIST, transform=transforms.ToTensor())
 
 trainer = TrainerGrad(model,
                       criterion=nn.CrossEntropyLoss(),
