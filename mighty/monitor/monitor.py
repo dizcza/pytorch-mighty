@@ -23,7 +23,6 @@ Monitor Parameter Records
 
 
 from collections import UserDict
-from typing import Callable, Optional
 
 import numpy as np
 import torch
@@ -34,7 +33,7 @@ from sklearn.metrics import confusion_matrix
 from mighty.monitor.accuracy import calc_accuracy, Accuracy
 from mighty.monitor.batch_timer import timer, ScheduleExp
 from mighty.monitor.mutual_info.stub import MutualInfoStub
-from mighty.monitor.var_online import VarianceOnline
+from mighty.utils.var_online import VarianceOnline
 from mighty.monitor.viz import VisdomMighty
 from mighty.utils.common import clone_cpu
 from mighty.utils.domain import MonitorLevel

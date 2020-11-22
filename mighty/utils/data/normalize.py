@@ -15,14 +15,12 @@ Inverse normalizations of data transforms.
 import torch
 import torch.utils.data
 import torchvision.transforms.functional as F
-from torchvision.datasets import MNIST
 from torchvision.transforms import Normalize, Compose, ToTensor
 from tqdm import tqdm
 
-from mighty.monitor.var_online import VarianceOnlineBatch
-from mighty.monitor.viz import VisdomMighty
 from mighty.utils.common import input_from_batch
 from mighty.utils.constants import DATA_DIR, BATCH_SIZE
+from mighty.utils.var_online import VarianceOnlineBatch
 
 
 class NormalizeInverse(Normalize):
@@ -49,6 +47,7 @@ class NormalizeInverse(Normalize):
         mean = torch.as_tensor(self.mean, dtype=dtype, device=tensor.device)
         std = torch.as_tensor(self.std, dtype=dtype, device=tensor.device)
         return F.normalize(tensor, mean=mean, std=std, inplace=False)
+
 
 def get_normalize_inverse(transform):
     """
@@ -135,30 +134,3 @@ def dataset_mean_std(dataset_cls: type):
     with open(mean_std_file, 'rb') as f:
         mean, std = torch.load(f)
     return mean, std
-
-
-def plot_dataset_mean_std(viz=None, dataset_cls=MNIST):
-    """
-    Plots dataset mean and std, averaged across channels.
-
-    Parameters
-    ----------
-    viz : Visdom
-        A Visdom instance.
-    dataset_cls : type, optional
-        A dataset class to plot its mean and std.
-    """
-    if viz is None:
-        viz = VisdomMighty(env="main")
-    mean, std = dataset_mean_std(dataset_cls=dataset_cls)
-    viz.heatmap(mean.mean(dim=0), win=f'{dataset_cls.__name__} mean',
-                opts=dict(
-                    title=f'{dataset_cls.__name__} Mean',
-                ))
-    viz.heatmap(std.mean(dim=0), win=f'{dataset_cls.__name__} std', opts=dict(
-        title=f'{dataset_cls.__name__} STD',
-    ))
-
-
-if __name__ == '__main__':
-    plot_dataset_mean_std(dataset_cls=MNIST)

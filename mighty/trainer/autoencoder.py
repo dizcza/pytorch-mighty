@@ -9,7 +9,7 @@ from torch.optim.optimizer import Optimizer
 from mighty.loss import LossPenalty
 from mighty.models import AutoencoderLinear
 from mighty.monitor.monitor import MonitorAutoencoder
-from mighty.monitor.var_online import MeanOnline
+from mighty.utils.var_online import MeanOnline
 from mighty.utils.signal import peak_to_signal_noise_ratio
 from mighty.utils.common import input_from_batch, batch_to_cuda
 from mighty.utils.data import DataLoader

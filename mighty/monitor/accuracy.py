@@ -15,7 +15,7 @@ from abc import ABC
 import torch
 import torch.utils.data
 
-from mighty.monitor.var_online import MeanOnlineLabels
+from mighty.utils.var_online import MeanOnlineLabels
 from mighty.utils.signal import compute_distance
 
 

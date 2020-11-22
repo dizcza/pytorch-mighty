@@ -8,14 +8,11 @@ from torchvision.transforms import Normalize
 from mighty.utils.common import set_seed
 from mighty.utils.data import DataLoader
 from mighty.utils.data.normalize import NormalizeInverse, \
-    plot_dataset_mean_std, get_normalize_inverse
+    get_normalize_inverse
 from mighty.utils.data.transforms_default import TransformDefault
 
 
 class TestNormalizeInverse(unittest.TestCase):
-    def test_plot_dataset_mean_std(self):
-        plot_dataset_mean_std(dataset_cls=MNIST)
-
     def test_NormalizeInverse(self):
         set_seed(0)
         mean = torch.rand(3)

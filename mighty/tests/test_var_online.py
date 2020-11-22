@@ -4,7 +4,7 @@ import torch
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 from torch.utils.data import TensorDataset, DataLoader
 
-from mighty.monitor.var_online import VarianceOnline, VarianceOnlineBatch, \
+from mighty.utils.var_online import VarianceOnline, VarianceOnlineBatch, \
     MeanOnline, MeanOnlineBatch, MeanOnlineLabels, VarianceOnlineLabels
 
 

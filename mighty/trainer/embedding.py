@@ -6,7 +6,7 @@ from torch.optim.optimizer import Optimizer
 
 from mighty.monitor.accuracy import Accuracy, AccuracyEmbedding
 from mighty.monitor.monitor import MonitorEmbedding
-from mighty.monitor.var_online import MeanOnline, VarianceOnlineLabels
+from mighty.utils.var_online import MeanOnline, VarianceOnlineLabels
 from mighty.utils.signal import compute_sparsity
 from mighty.utils.data import DataLoader
 from .gradient import TrainerGrad

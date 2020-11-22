@@ -20,7 +20,7 @@ from mighty.monitor.monitor import Monitor
 from mighty.monitor.mutual_info import MutualInfoNeuralEstimation, \
     MutualInfoStub
 from mighty.monitor.mutual_info.mutual_info import MutualInfo
-from mighty.monitor.var_online import MeanOnline
+from mighty.utils.var_online import MeanOnline
 from mighty.trainer.mask import MaskTrainer
 from mighty.utils.common import find_named_layers, batch_to_cuda, \
     input_from_batch

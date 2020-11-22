@@ -29,7 +29,7 @@ class VisdomMighty(visdom.Visdom):
     env : str, optional
         Environment name.
         Default: "main"
-    offile : bool, optional
+    offline : bool, optional
         Online (False) or offline (True) mode.
         Default: False
     """
@@ -121,7 +121,7 @@ class VisdomMighty(visdom.Visdom):
         if name is not None:
             self.update_window_opts(win=win, opts=dict(legend=[], title=win))
 
-    def log(self, text):
+    def log(self, text, timestamp=True):
         """
         Log the text.
 
@@ -129,6 +129,10 @@ class VisdomMighty(visdom.Visdom):
         ----------
         text : str
             Text
+        timestamp : bool, optional
+            Prepend date timestamp (True) or not.
+            Default: True
         """
-        self.text(f"{time.strftime('%Y-%b-%d %H:%M')} {text}",
-                  win='log', append=self.win_exists(win='log'))
+        if timestamp:
+            text = f"{time.strftime('%Y-%b-%d %H:%M')} {text}"
+        self.text(text, win='log', append=self.win_exists(win='log'))
