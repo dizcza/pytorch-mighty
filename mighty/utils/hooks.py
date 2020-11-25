@@ -9,17 +9,18 @@ Layer hooks.
 """
 
 import pickle
-
 import shutil
-import torch
-import torch.nn as nn
 from pathlib import Path
 
+import torch
+import torch.nn as nn
+
+from mighty.utils.common import batch_to_cuda
 from mighty.utils.constants import DUMPS_DIR
 
 
-def get_layers_ordered(model: nn.Module, input_sample: torch.Tensor,
-                       ignore_layers=(nn.Sequential,), ignore_children=()):
+def get_layers_ordered(model, input_sample, ignore_layers=(nn.Sequential,),
+                       ignore_children=()):
     """
     Returns a list of ordered layers of the input model.
 
@@ -43,7 +44,6 @@ def get_layers_ordered(model: nn.Module, input_sample: torch.Tensor,
         might be added in the list more than once.
 
     """
-    ignore_layers = ignore_layers + (type(model),)
     hooks = []
     layers_ordered = []
 
@@ -52,7 +52,7 @@ def get_layers_ordered(model: nn.Module, input_sample: torch.Tensor,
         if any(children) and not isinstance(a_model, ignore_children):
             for layer in children:
                 register_hooks(layer)
-        if not isinstance(a_model, ignore_layers):
+        if not (isinstance(a_model, ignore_layers) or a_model is model):
             handle = a_model.register_forward_pre_hook(append_layer)
             hooks.append(handle)
 
@@ -61,10 +61,9 @@ def get_layers_ordered(model: nn.Module, input_sample: torch.Tensor,
 
     register_hooks(model)
 
-    if input_sample.ndim == 3:
+    if isinstance(input_sample, torch.Tensor) and input_sample.ndim == 3:
         input_sample = input_sample.unsqueeze(dim=0)  # batch of 1 sample
-    if torch.cuda.is_available():
-        input_sample = input_sample.cuda()
+    input_sample = batch_to_cuda(input_sample)
     with torch.no_grad():
         model(input_sample)
 
