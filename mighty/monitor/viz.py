@@ -65,7 +65,7 @@ class VisdomMighty(visdom.Visdom):
             url = f"{self.server}:{self.port}{self.base_url}"
             print(f"Monitor is opened at {url}. "
                   f"Choose environment '{self.env}'.")
-            self._register_comments_window()
+            # self._register_comments_window()
 
     def _register_comments_window(self):
         txt_init = "Enter comments:"
@@ -82,7 +82,7 @@ class VisdomMighty(visdom.Visdom):
                     curr_txt = txt_init
                 elif len(event['key']) == 1:
                     curr_txt += event['key']
-                self.viz.text(curr_txt, win='comments')
+                self.text(curr_txt, win='comments')
 
         self.text(txt_init, win=win)
         self.register_event_handler(type_callback, win)
@@ -135,4 +135,5 @@ class VisdomMighty(visdom.Visdom):
         """
         if timestamp:
             text = f"{time.strftime('%Y-%b-%d %H:%M')} {text}"
-        self.text(text, win='log', append=self.win_exists(win='log'))
+        self.text(text, win='log', opts=dict(title='log'),
+                  append=self.win_exists(win='log'))
