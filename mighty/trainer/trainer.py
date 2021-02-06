@@ -223,6 +223,8 @@ class Trainer(ABC):
         if score > self.best_score:
             self.best_score = score
             self.save(best=True)
+            self.monitor.log(f"[epoch={self.timer.epoch}] "
+                             f"best score: {self.best_score}")
 
     def save(self, best=False):
         """
