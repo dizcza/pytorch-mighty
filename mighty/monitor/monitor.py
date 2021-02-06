@@ -675,11 +675,14 @@ class MonitorEmbedding(Monitor):
         activations : (N,) torch.Tensor
             The averaged embedding vector.
         """
+        if activations is None:
+            return
         title = "Embedding activations hist"
-        self.viz.histogram(X=activations, win=title, opts=dict(
+        self.viz.histogram(X=activations.flatten(), win=title, opts=dict(
             xlabel='Neuron value',
             ylabel='# bins (distribution)',
             title=title,
+            ytype='log',
         ))
 
     def clusters_heatmap(self, mean, std, save=False):

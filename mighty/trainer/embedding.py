@@ -89,7 +89,8 @@ class TrainerEmbedding(TrainerGrad):
         self.monitor.update_sparsity(self.online['sparsity'].get_mean(),
                                      mode='train')
         self.monitor.update_l1_neuron_norm(self.online['l1_norm'].get_mean())
+        # mean and std can be Nones
         mean, std = self.online['clusters'].get_mean_std()
         self.monitor.clusters_heatmap(mean=mean, std=std)
-        self.monitor.embedding_hist(activations=mean.mean(dim=0))
+        self.monitor.embedding_hist(activations=mean)
         super()._epoch_finished(loss)
