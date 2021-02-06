@@ -75,6 +75,11 @@ class Trainer(ABC):
 
     watch_modules = (nn.Linear, nn.Conv2d, MLP)
 
+    # A key-word to determine the criteria for the "best" score.
+    # The value of the tag is irrelevant.
+    # By default, the accuracy is used as the best score measure.
+    best_score_type = 'accuracy'
+
     def __init__(self,
                  model: nn.Module,
                  criterion: nn.Module,
@@ -204,7 +209,7 @@ class Trainer(ABC):
         """
         raise NotImplementedError()
 
-    def update_best_score(self, score, score_type=''):
+    def update_best_score(self, score):
         """
         If :code:`score` is greater than the :code:`self.best_score`, save
         the model.
@@ -214,11 +219,6 @@ class Trainer(ABC):
         score : float
             The model score at the current epoch. The higher, the better.
             The simplest way to use this function is set :code:`score = -loss`.
-        score_type : str
-            An optional user-defined key-word to determine the criteria for the
-            "best" score. For example, one may be interested in both the
-            accuracy and the loss of a model as a proxy to the "best" score.
-            Default: ''
         """
         if score > self.best_score:
             self.best_score = score
@@ -431,7 +431,8 @@ class Trainer(ABC):
 
         accuracy = self.monitor.update_accuracy_epoch(
             labels_pred, labels_true, mode='train' if train else 'test')
-        self.update_best_score(accuracy, score_type='accuracy')
+        if self.best_score_type == Trainer.best_score_type:
+            self.update_best_score(accuracy)
 
         return accuracy
 
