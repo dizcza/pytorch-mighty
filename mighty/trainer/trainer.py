@@ -214,13 +214,21 @@ class Trainer(ABC):
         If :code:`score` is greater than the :code:`self.best_score`, save
         the model.
 
+        The internal best score is updated and the current model is saved as
+        "best" if the object's :attr:`best_score_type` tag matches with its
+        class :attr:`best_score_type`.
+
         Parameters
         ----------
         score : float
             The model score at the current epoch. The higher, the better.
             The simplest way to use this function is set :code:`score = -loss`.
         """
-        if score > self.best_score:
+        # This function can be called multiple times from different functions
+        # but only one call will lead to updating the score and saving the
+        # best model.
+        if self.best_score_type == self.__class__.best_score_type \
+                and score > self.best_score:
             self.best_score = score
             self.save(best=True)
             self.monitor.log(f"[epoch={self.timer.epoch}] "
@@ -433,8 +441,7 @@ class Trainer(ABC):
 
         accuracy = self.monitor.update_accuracy_epoch(
             labels_pred, labels_true, mode='train' if train else 'test')
-        if self.best_score_type == Trainer.best_score_type:
-            self.update_best_score(accuracy)
+        self.update_best_score(accuracy)
 
         return accuracy
 
