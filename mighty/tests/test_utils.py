@@ -1,3 +1,5 @@
+import os
+
 import torch
 import torch.nn as nn
 import unittest
@@ -49,6 +51,7 @@ class TestCommonUtils(unittest.TestCase):
         assert_array_almost_equal(x, x_clone)
 
     def test_get_layers_ordered(self):
+        os.environ['CUDA_VISIBLE_DEVICES'] = ''
         c, h, w = 3, 5, 5
         mlp = MLP(c * h * w, 12, 19)
         ordered = get_layers_ordered(mlp, input_sample=torch.rand(c, h, w),

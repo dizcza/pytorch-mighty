@@ -21,6 +21,7 @@ class TestMaskTrainer(unittest.TestCase):
         mask_trainer = MaskTrainer(accuracy_measure=AccuracyArgmax(),
                                    image_shape=self.image.shape,
                                    learning_rate=10)
+        mask_trainer.cpu()
         mask, image, loss = mask_trainer.train_mask(self.model,
                                                     image=self.image,
                                                     label_true=self.label)
@@ -33,6 +34,7 @@ class TestMaskTrainer(unittest.TestCase):
         mask_trainer = MaskTrainer(accuracy_measure=AccuracyArgmax(),
                                    image_shape=self.image.shape,
                                    learning_rate=0)
+        mask_trainer.cpu()
         mask, image, loss = mask_trainer.train_mask(self.model,
                                                     image=self.image,
                                                     label_true=self.label)

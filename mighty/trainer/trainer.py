@@ -485,8 +485,8 @@ class Trainer(ABC):
         """
         loss_online = MeanOnline()
         for batch in tqdm(self.train_loader,
-                                   desc="Epoch {:d}".format(epoch),
-                                   leave=False):
+                          desc="Epoch {:d}".format(epoch),
+                          leave=False):
             batch = batch_to_cuda(batch)
             loss = self.train_batch(batch)
             loss_online.update(loss.detach().cpu())

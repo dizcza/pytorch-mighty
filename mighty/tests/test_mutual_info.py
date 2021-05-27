@@ -1,6 +1,7 @@
 import unittest
 import math
 
+import torch.cuda
 from numpy.testing import assert_array_almost_equal, assert_array_less
 from torchvision.datasets import MNIST
 from torchvision.transforms import Resize, ToTensor, Compose
@@ -24,8 +25,10 @@ class TestMutualInfoNPEET(unittest.TestCase):
         imsize = 5
         transform = Compose([Resize(imsize), ToTensor()])
         cls.data_loader = DataLoader(dataset_cls=MNIST, transform=transform,
-                                     batch_size=20, eval_size=1000)
+                                     batch_size=32, eval_size=1024)
         cls.model = MLP(imsize ** 2, 10)
+        if torch.cuda.is_available():
+            cls.model.cuda()
         cls.viz = VisdomMighty(env='test', offline=True)
 
     def setUp(self):

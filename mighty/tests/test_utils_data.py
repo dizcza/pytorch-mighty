@@ -39,7 +39,7 @@ class TestNormalizeInverse(unittest.TestCase):
 
 class TestDefaultTransform(unittest.TestCase):
     def _test_dataset(self, loader):
-        for x_tensor, y_labels in loader.get():
+        for x_tensor, y_labels in loader.eval():
             x_tensor = x_tensor.flatten(start_dim=1)
             mean = x_tensor.mean(dim=1).mean()
             std = x_tensor.std(dim=1).mean()
@@ -50,7 +50,7 @@ class TestDefaultTransform(unittest.TestCase):
         set_seed(0)
         transform = TransformDefault.mnist()
         loader = DataLoader(dataset_cls=MNIST,
-                            transform=transform)
+                            transform=transform, eval_size=10_000)
         self._test_dataset(loader)
 
     @unittest.skip("Skip CIFAR10 downloading")
@@ -87,15 +87,11 @@ class TestDataLoader(unittest.TestCase):
                                   norm_inv.mean)
         assert_array_almost_equal(loader2.normalize_inverse.std, norm_inv.std)
 
-    def test_eval_full(self):
+    def test_eval_size_default(self):
         loader = DataLoader(dataset_cls=MNIST)
-        n_eval = 0
-        for x, y in loader.eval():
-            n_eval += x.shape[0]
         self.assertEqual(loader.eval_size, 60_000)
-        self.assertEqual(n_eval, loader.eval_size)
 
-    def test_eval_short(self):
+    def test_eval_size_short(self):
         eval_size = 711
         loader = DataLoader(dataset_cls=MNIST, eval_size=eval_size)
         n_eval = 0
@@ -103,13 +99,6 @@ class TestDataLoader(unittest.TestCase):
             n_eval += x.shape[0]
         self.assertEqual(loader.eval_size, eval_size)
         self.assertGreaterEqual(n_eval, loader.eval_size)
-
-    def test_get_train(self):
-        loader = DataLoader(dataset_cls=MNIST)
-        n_samples = 0
-        for x, y in loader.get(train=True):
-            n_samples += x.shape[0]
-        self.assertGreaterEqual(n_samples, 60_000)
 
     def test_get_test(self):
         loader = DataLoader(dataset_cls=MNIST)

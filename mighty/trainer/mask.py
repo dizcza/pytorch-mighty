@@ -83,8 +83,15 @@ class MaskTrainer:
         self.padding = nn.modules.ReflectionPad2d(padding=kernel_size // 2)
         self.show_progress = show_progress
         if torch.cuda.is_available():
-            self.gaussian_filter.cuda()
-            self.padding.cuda()
+            self.cuda()
+
+    def cuda(self):
+        self.gaussian_filter.cuda()
+        self.padding.cuda()
+
+    def cpu(self):
+        self.gaussian_filter.cpu()
+        self.padding.cpu()
 
     def train_mask(self, model, image, label_true):
         """

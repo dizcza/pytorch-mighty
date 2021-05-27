@@ -22,7 +22,7 @@ jobs:
            conda install pytorch torchvision cpuonly -c pytorch
 
            conda install -c conda-forge scipy h5py ecos jpype1 pyopencl intel-compute-runtime
-           pip install https://github.com/pwollstadt/IDTxl/archive/v1.1.tar.gz
+           pip install https://github.com/pwollstadt/IDTxl/archive/v1.2.2.tar.gz
 
            pip list
            pip -V
