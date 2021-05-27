@@ -22,8 +22,7 @@ class TrainerTestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         os.environ['VISDOM_SERVER'] = "http://85.217.171.57"
-        os.environ['VISDOM_PORT'] = '8099'
-        os.environ['VISDOM_BASE_URL'] = '/travis'
+        os.environ['VISDOM_PORT'] = '8096'
 
     def setUp(self):
         set_seed(1)
@@ -45,6 +44,7 @@ class TrainerTestCase(unittest.TestCase):
                               data_loader=self.data_loader,
                               optimizer=self.optimizer,
                               scheduler=self.scheduler)
+        trainer.env_name = f"pytorch-mighty tests"
         loss_epochs = trainer.train(n_epochs=1, mutual_info_layers=0,
                                     mask_explain_params=dict())
         assert_array_almost_equal(loss_epochs, [0.219992])
@@ -69,6 +69,7 @@ class TrainerTestCase(unittest.TestCase):
                               mutual_info=MutualInfoNPEETDebug(
                                   data_loader=data_loader, pca_size=None),
                               scheduler=self.scheduler)
+        trainer.env_name = "pytorch-mighty tests"
         trainer.monitor.advanced_monitoring(level=MonitorLevel.FULL)
         trainer.train(n_epochs=1, mutual_info_layers=1)
         mi_history = np.vstack(mi_history)
@@ -88,6 +89,7 @@ class TrainerTestCase(unittest.TestCase):
                                    data_loader=self.data_loader,
                                    optimizer=self.optimizer,
                                    scheduler=self.scheduler)
+        trainer.env_name = "pytorch-mighty tests"
         loss_epochs = trainer.train(n_epochs=1, mutual_info_layers=0)
         # CircleCI outputs 0.103
         assert_array_almost_equal(loss_epochs, [0.09936], decimal=2)
@@ -102,6 +104,7 @@ class TrainerTestCase(unittest.TestCase):
                                    scheduler=self.scheduler,
                                    accuracy_measure=AccuracyEmbedding(
                                        cache=True))
+        trainer.env_name = "pytorch-mighty tests"
         trainer.open_monitor(offline=True)
 
         # TripletLoss is not deterministic; fix the seed
@@ -127,6 +130,7 @@ class TrainerTestCase(unittest.TestCase):
                                      data_loader=self.data_loader,
                                      optimizer=self.optimizer,
                                      scheduler=self.scheduler)
+        trainer.env_name = "pytorch-mighty tests"
         loss_epochs = trainer.train(n_epochs=1, mutual_info_layers=0)
         assert_array_almost_equal(loss_epochs, [0.69737625122])
 
