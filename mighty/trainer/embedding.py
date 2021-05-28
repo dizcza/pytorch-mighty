@@ -61,7 +61,6 @@ class TrainerEmbedding(TrainerGrad):
 
     def _init_monitor(self, mutual_info):
         monitor = MonitorEmbedding(
-            accuracy_measure=self.accuracy_measure,
             mutual_info=mutual_info,
             normalize_inverse=self.data_loader.normalize_inverse
         )

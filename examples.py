@@ -39,8 +39,6 @@ def train_mask():
     transform = TransformDefault.imagenet()
     accuracy_measure = AccuracyArgmax()
     monitor = Monitor(
-        accuracy_measure=accuracy_measure,
-        mutual_info=MutualInfoKMeans(),
         normalize_inverse=get_normalize_inverse(transform),
     )
     monitor.open(env_name='mask')

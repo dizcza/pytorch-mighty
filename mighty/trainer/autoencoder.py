@@ -59,7 +59,6 @@ class TrainerAutoencoder(TrainerEmbedding):
 
     def _init_monitor(self, mutual_info) -> MonitorAutoencoder:
         monitor = MonitorAutoencoder(
-            accuracy_measure=self.accuracy_measure,
             mutual_info=mutual_info,
             normalize_inverse=self.data_loader.normalize_inverse
         )

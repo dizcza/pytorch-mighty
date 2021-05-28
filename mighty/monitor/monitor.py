@@ -149,8 +149,6 @@ class Monitor:
 
     Parameters
     ----------
-    accuracy_measure : Accuracy
-        The accuracy measure of a trainer.
     mutual_info : MutualInfo or None, optional
         The Mutual Information estimator (the same as in a trainer).
         Default: None
@@ -161,16 +159,10 @@ class Monitor:
 
     n_classes_format_ytickstep_1 = 10
 
-    def __init__(self, accuracy_measure: Accuracy, mutual_info=None,
-                 normalize_inverse=None):
-        """
-        :param accuracy_measure: argmax or centroid embeddings accuracy measure
-        :param mutual_info: mutual information estimator
-        """
+    def __init__(self, mutual_info=None, normalize_inverse=None):
         self.timer = timer
         self.viz = None
         self._advanced_monitoring_level = MonitorLevel.DISABLED
-        self.accuracy_measure = accuracy_measure
         self.normalize_inverse = normalize_inverse
         self.param_records = ParamsDict()
         if mutual_info is None:
