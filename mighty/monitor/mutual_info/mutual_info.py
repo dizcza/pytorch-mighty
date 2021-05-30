@@ -189,8 +189,8 @@ class MutualInfo(ABC):
             if layer in layers_ordered:
                 self.register_layer(layer=layer, name=name)
 
-        print(f"Monitoring only these last layers for mutual information "
-              f"estimation: {list(self.layer_to_name.values())}")
+        print(f"Monitoring these {monitor_layers_count} last layers for mutual"
+              f" information estimation: {list(self.layer_to_name.values())}")
 
     def start_listening(self):
         """

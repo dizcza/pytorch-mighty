@@ -22,7 +22,7 @@ class MutualInfoPCA(MutualInfo, ABC):
         The data loader.
     pca_size : int, optional
         PCA dimension size.
-        Default: 100
+        Default: 64
     debug : bool, optional
         If True, shows more informative plots.
         Default: False
@@ -33,7 +33,7 @@ class MutualInfoPCA(MutualInfo, ABC):
         A tuple to ignore layer classes to monitor for MI.
     """
 
-    def __init__(self, data_loader: DataLoader, pca_size=100, debug=False):
+    def __init__(self, data_loader: DataLoader, pca_size=64, debug=False):
         super().__init__(data_loader=data_loader, debug=debug)
         self.pca_size = pca_size
 

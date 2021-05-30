@@ -13,6 +13,7 @@ from mighty.utils.common import set_seed
 from mighty.utils.data import get_normalize_inverse, DataLoader, \
     TransformDefault
 from mighty.utils.domain import MonitorLevel
+from mighty.loss import TripletLossSampler
 
 
 def get_optimizer_scheduler(model: nn.Module):
@@ -76,6 +77,23 @@ def train_grad(n_epoch=10, dataset_cls=MNIST):
     trainer.train(n_epochs=n_epoch, mutual_info_layers=1)
 
 
+def train_embedder(n_epoch=10, dataset_cls=MNIST):
+    model = MLP(784, 128, 10)
+    optimizer, scheduler = get_optimizer_scheduler(model)
+    data_loader = DataLoader(dataset_cls, transform=TransformDefault.mnist(),
+                             eval_size=10_000)
+    criterion = TripletLossSampler(nn.TripletMarginLoss())
+    trainer = TrainerEmbedding(model,
+                               criterion=criterion,
+                               data_loader=data_loader,
+                               optimizer=optimizer,
+                               mutual_info=MutualInfoNPEET(data_loader),
+                               scheduler=scheduler)
+    # trainer.restore()  # uncomment to restore the saved state
+    trainer.monitor.advanced_monitoring(level=MonitorLevel.SIGNAL_TO_NOISE)
+    trainer.train(n_epochs=n_epoch, mutual_info_layers=1)
+
+
 def test(model, n_epoch=500, dataset_cls=MNIST):
     model.eval()
     for param in model.parameters():
@@ -109,5 +127,6 @@ def train_autoencoder(n_epoch=60, dataset_cls=MNIST):
 if __name__ == '__main__':
     set_seed(26)
     # torch.backends.cudnn.benchmark = True
-    train_autoencoder()
+    train_embedder()
+    # train_autoencoder()
     # train_grad()
