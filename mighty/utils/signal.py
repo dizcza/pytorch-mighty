@@ -1,5 +1,6 @@
 """
-Signal processing and statistics.
+Signal processing and statistics
+--------------------------------
 
 .. autosummary::
     :toctree: toctree/utils/

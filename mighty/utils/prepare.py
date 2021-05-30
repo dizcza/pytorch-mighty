@@ -1,5 +1,6 @@
 """
-Convert a model to the train or test mode.
+Convert a model to the train or test mode
+-----------------------------------------
 
 .. autosummary::
     :toctree: toctree/utils/

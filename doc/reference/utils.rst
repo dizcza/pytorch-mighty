@@ -1,6 +1,8 @@
-************************
-Loader, common utilities
-************************
+*****
+Other
+*****
+
+.. automodule:: mighty.utils.var_online
 
 .. automodule:: mighty.utils.data.loader
 .. automodule:: mighty.utils.data.normalize

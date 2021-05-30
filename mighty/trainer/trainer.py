@@ -46,12 +46,21 @@ class Trainer(ABC):
         Loss function.
     data_loader : DataLoader
         A data loader.
-    accuracy_measure : Accuracy
+    accuracy_measure : Accuracy or None
         Calculates the accuracy from the last layer activations.
-        If None, set to :code:`AccuracyArgmax` for a classification problem
+        If None, set to :code:`AccuracyArgmax` for a classification task
         and :code:`AccuracyEmbedding` otherwise.
+
+        .. code-block:: python
+
+            if isinstance(criterion, PairLossSampler):
+                accuracy_measure = AccuracyEmbedding()
+            else:
+                # cross entropy loss
+                accuracy_measure = AccuracyArgmax()
+
         Default: None
-    mutual_info : MutualInfo
+    mutual_info : MutualInfo or None
         A handle to compute the mutual information I(X; T) and I(Y; T) [1]_.
         If None, don't compute the mutual information.
         Default: None
@@ -60,7 +69,7 @@ class Trainer(ABC):
         Default: ''
     checkpoint_dir : Path or str
         The path to store the checkpoints.
-        Default: '${HOME}/.mighty/checkpoints'
+        Default: ``${HOME}/.mighty/checkpoints``
 
     References
     ----------
@@ -69,7 +78,7 @@ class Trainer(ABC):
 
     Notes
     -----
-    For the choice of `mutual_info` refer to
+    For the choice of ``mutual_info`` refer to
     https://github.com/dizcza/entropy-estimators
     """
 
@@ -542,7 +551,7 @@ class Trainer(ABC):
         ----------
         .. [1] Shwartz-Ziv, R., & Tishby, N. (2017). Opening the black box of deep
            neural networks via information. arXiv preprint arXiv:1703.00810.
-        .. [1] Fong, R. C., & Vedaldi, A. (2017). Interpretable explanations of
+        .. [2] Fong, R. C., & Vedaldi, A. (2017). Interpretable explanations of
            black boxes by meaningful perturbation.
 
         """

@@ -3,7 +3,7 @@ Mean and variance online measures
 ---------------------------------
 
 .. autosummary::
-    :toctree: toctree/monitor
+    :toctree: toctree/utils/
     
     MeanOnline
     MeanOnlineBatch

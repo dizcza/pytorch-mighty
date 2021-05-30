@@ -1,5 +1,6 @@
 """
-Layer hooks.
+Layer hooks
+-----------
 
 .. autosummary::
     :toctree: toctree/utils/

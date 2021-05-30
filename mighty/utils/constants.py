@@ -1,5 +1,6 @@
 """
-Constants.
+Constants
+---------
 
 .. data:: BATCH_SIZE
     :type: int

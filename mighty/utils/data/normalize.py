@@ -1,5 +1,6 @@
 """
-Inverse normalizations of data transforms.
+Inverse normalizations of data transforms
+-----------------------------------------
 
 .. autosummary::
     :toctree: toctree/utils/

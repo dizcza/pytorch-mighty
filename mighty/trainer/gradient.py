@@ -15,7 +15,7 @@ __all__ = [
 
 class TrainerGrad(Trainer):
     """
-    Default gradient descent trainer.
+    The default gradient descent trainer.
 
     Parameters
     ----------

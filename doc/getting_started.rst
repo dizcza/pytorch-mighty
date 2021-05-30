@@ -80,7 +80,7 @@ previously. Navigate to http://localhost:8097 to see the training progress.
 For the rest training examples, refer to `examples.py
 <https://github.com/dizcza/pytorch-mighty/blob/master/examples.py>`_.
 
-Other demo results can be found at http://85.217.171.57:8096/. Give your
+Other demo results can be found at http://85.217.171.57:8097/. Give your
 browser a few minutes to parse the json data.
 
 

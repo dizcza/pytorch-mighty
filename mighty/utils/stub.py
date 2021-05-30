@@ -1,5 +1,6 @@
 """
-Stubs.
+Stubs
+-----
 
 .. autosummary::
     :toctree: toctree/utils/

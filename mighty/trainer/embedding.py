@@ -36,6 +36,7 @@ class TrainerEmbedding(TrainerGrad):
         A learning rate scheduler.
     accuracy_measure : AccuracyEmbedding
         Calculates the accuracy of embedding vectors.
+        Default: AccuracyEmbedding()
     **kwargs
         Passed to the base class.
     """

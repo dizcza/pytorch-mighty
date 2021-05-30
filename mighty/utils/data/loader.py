@@ -1,5 +1,6 @@
 """
-Data loader with simple API.
+Data loader with simple API
+---------------------------
 
 .. autosummary::
     :toctree: toctree/utils/

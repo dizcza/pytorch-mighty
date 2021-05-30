@@ -8,8 +8,6 @@ Monitors
 
 .. automodule:: mighty.monitor.accuracy
 
-.. automodule:: mighty.monitor.var_online
-
 .. automodule:: mighty.monitor.batch_timer
 
 .. automodule:: mighty.monitor.viz

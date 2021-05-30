@@ -636,7 +636,7 @@ class Monitor:
 
 class MonitorEmbedding(Monitor):
     """
-    A monitor for :class:`TrainerEmbedding`.
+    A monitor for :class:`mighty.trainer.TrainerEmbedding`.
     """
 
     def update_sparsity(self, sparsity, mode):
@@ -751,7 +751,7 @@ class MonitorEmbedding(Monitor):
 
 class MonitorAutoencoder(MonitorEmbedding):
     """
-    A monitor for :class:`TrainerAutoencoder`.
+    A monitor for :class:`mighty.trainer.TrainerAutoencoder`.
     """
 
     def plot_autoencoder(self, images, reconstructed, *tensors, labels=(),
