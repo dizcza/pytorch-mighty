@@ -522,6 +522,23 @@ class Trainer(ABC):
             self.monitor.open(env_name=self.env_name, offline=offline)
             self.monitor.clear()
 
+    def _prepare_train(self, mutual_info_layers=0):
+        self.open_monitor()
+        self.monitor_functions()
+        self.log_trainer()
+        for name, layer in find_named_layers(self.model,
+                                             layer_class=self.watch_modules):
+            self.monitor.register_layer(layer, prefix=name)
+
+        if mutual_info_layers > 0 and not isinstance(self.mutual_info,
+                                                     MutualInfoStub):
+            # Mutual Information in conv layers are poorly estimated
+            monitor_classes = set(self.watch_modules).difference({nn.Conv2d})
+            self.mutual_info.prepare(model=self.model,
+                                     monitor_layers=tuple(monitor_classes),
+                                     monitor_layers_count=mutual_info_layers)
+
+
     def train(self, n_epochs=10, mutual_info_layers=0,
               mask_explain_params=None):
         """
@@ -556,22 +573,9 @@ class Trainer(ABC):
 
         """
         print(self.model)
-        self.open_monitor()
+        self._prepare_train(mutual_info_layers)
         if n_epochs == 1:
             self.monitor.viz.with_markers = True
-        self.monitor_functions()
-        self.log_trainer()
-        for name, layer in find_named_layers(self.model,
-                                             layer_class=self.watch_modules):
-            self.monitor.register_layer(layer, prefix=name)
-
-        if mutual_info_layers > 0 and not isinstance(self.mutual_info,
-                                                     MutualInfoStub):
-            # Mutual Information in conv layers are poorly estimated
-            monitor_classes = set(self.watch_modules).difference({nn.Conv2d})
-            self.mutual_info.prepare(model=self.model,
-                                     monitor_layers=tuple(monitor_classes),
-                                     monitor_layers_count=mutual_info_layers)
 
         loss_epochs = []
         for epoch in range(self.timer.epoch, self.timer.epoch + n_epochs):

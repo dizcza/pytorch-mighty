@@ -51,16 +51,15 @@ class DataLoader:
         self.dataset_cls = dataset_cls
         self.loader_cls = loader_cls
         self.transform = transform
-        self.batch_size = batch_size
         if eval_size is None:
             eval_size = float('inf')
         dataset = self.dataset_cls(DATA_DIR, train=True, download=True)
-        eval_size = min(eval_size, len(dataset))
-        self.eval_size = eval_size
+        self.eval_size = min(eval_size, len(dataset))
+        self.batch_size = min(batch_size, len(dataset))
         self.num_workers = num_workers
         self.normalize_inverse = get_normalize_inverse(self.transform)
 
-        # hack to check if the dataset is with labels
+        # hack to check if the dataset is a set of (signal, label) pairs
         self.has_labels = False
         sample = self.sample()
         if isinstance(sample, (tuple, list)) and len(sample) > 1:
