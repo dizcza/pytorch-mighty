@@ -61,7 +61,7 @@ class ParamRecord:
         self.variance = VarianceOnline()
         self.prev_sign = None
         self.initial_data = None
-        self.initial_norm = param.data.norm(p=2).item()
+        self.initial_norm = param.data.float().norm(p=2).item()
 
     def update_signs(self):
         """
@@ -585,7 +585,7 @@ class Monitor:
             if precord.initial_data is None:
                 precord.initial_data = precord.param.data.cpu().clone()
             dp = precord.param.data.cpu() - precord.initial_data
-            dp = dp.norm(p=2) / precord.initial_norm
+            dp = dp.float().norm(p=2) / precord.initial_norm
             dp_normed.append(dp)
         self.viz.line_update(y=dp_normed, opts=dict(
             xlabel='Epoch',

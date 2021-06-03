@@ -77,8 +77,10 @@ class TrainerEmbedding(TrainerGrad):
 
     def _on_forward_pass_batch(self, batch, output, train):
         if train:
+            output = output.float()
             sparsity = compute_sparsity(output)
             self.online['sparsity'].update(sparsity.cpu())
+            # L1 norm sums the result, we take the batch mean
             self.online['l1_norm'].update(output.abs().mean(dim=0).cpu())
             if self.data_loader.has_labels:
                 # supervised

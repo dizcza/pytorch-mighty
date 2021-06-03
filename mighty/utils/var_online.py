@@ -60,6 +60,7 @@ class MeanOnline:
         """
         if not self.is_active:
             return
+        tensor = tensor.float()
         self.count += 1
         if self.mean is None:
             self.mean = tensor.clone()
@@ -98,6 +99,7 @@ class VarianceOnline(MeanOnline):
     def update(self, tensor):
         if not self.is_active:
             return
+        tensor = tensor.float()
         self.count += 1
         if self.mean is None:
             self.mean = torch.zeros_like(tensor)
@@ -149,6 +151,7 @@ class MeanOnlineBatch(MeanOnline):
     def update(self, tensor):
         if not self.is_active:
             return
+        tensor = tensor.float()
         batch_size = tensor.shape[0]
         self.count += batch_size
         if self.mean is None:
@@ -173,6 +176,7 @@ class SumOnlineBatch:
     def update(self, tensor: torch.Tensor):
         if not self.is_active:
             return
+        tensor = tensor.float()
         self.count += tensor.shape[0]
         if self.sum is None:
             self.sum = tensor.sum(dim=0)
@@ -198,6 +202,7 @@ class VarianceOnlineBatch(VarianceOnline):
     def update(self, tensor):
         if not self.is_active:
             return
+        tensor = tensor.float()
         batch_size = tensor.shape[0]
         self.count += batch_size
         if self.mean is None:
@@ -264,6 +269,7 @@ class MeanOnlineLabels:
         """
         if not self.is_active:
             return
+        tensor = tensor.float()
         for label in labels.unique(sorted=False):
             self.online[label.item()].update(tensor[labels == label])
 
