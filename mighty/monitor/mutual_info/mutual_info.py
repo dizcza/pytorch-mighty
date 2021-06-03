@@ -152,7 +152,7 @@ class MutualInfo(ABC):
         self.finish_listening()
 
     @abstractmethod
-    def _prepare_input(self):
+    def _prepare_input(self, verbosity=1):
         pass
 
     def _prepare_input_finished(self):
@@ -160,7 +160,7 @@ class MutualInfo(ABC):
         self.accuracy_estimator = AccuracyFromMutualInfo(n_classes=n_classes)
 
     def prepare(self, model: nn.Module, monitor_layers=(nn.Linear,),
-                monitor_layers_count=1):
+                monitor_layers_count=1, verbosity=1):
         """
         Sorts the model layers in order and selects last
         `monitor_layers_count` layers.
@@ -171,9 +171,14 @@ class MutualInfo(ABC):
             A model to monitor.
         monitor_layers_count : int, optional
             The number of last layers to monitor for MI.
+        verbosity : int, optional
+            * 0 - don't print anything
+            * 1 - show the progress
+            * 2 - show the progress and print the tracked layer names
+            Default: 1
         """
         self.is_active = True  # turn on the feature
-        self._prepare_input()
+        self._prepare_input(verbosity)
         self._prepare_input_finished()
         images_batch, _ = self.data_loader.sample()
         image_sample = images_batch[0]
@@ -189,8 +194,10 @@ class MutualInfo(ABC):
             if layer in layers_ordered:
                 self.register_layer(layer=layer, name=name)
 
-        print(f"Monitoring these {monitor_layers_count} last layers for mutual"
-              f" information estimation: {list(self.layer_to_name.values())}")
+        if verbosity >= 2:
+            print(f"Monitoring these {monitor_layers_count} last layers for "
+                  f"mutual information estimation: "
+                  f"{list(self.layer_to_name.values())}")
 
     def start_listening(self):
         """

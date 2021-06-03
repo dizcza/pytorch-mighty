@@ -39,9 +39,10 @@ class TrainerAutoencoder(TrainerEmbedding):
         An optimizer (Adam, SGD, etc.).
     scheduler : _LRScheduler or ReduceLROnPlateau, or None
         A learning rate scheduler.
-    accuracy_measure : AccuracyEmbedding
+        Default: None
+    accuracy_measure : AccuracyEmbedding, optional
         Calculates the accuracy of embedding vectors.
-        Default: AccuracyEmbedding()
+        Default: ``AccuracyEmbedding()``
     **kwargs
         Passed to the base class.
     """

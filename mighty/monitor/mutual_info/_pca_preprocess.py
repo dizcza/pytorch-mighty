@@ -50,7 +50,7 @@ class MutualInfoPCA(MutualInfo, ABC):
     def extra_repr(self):
         return f"pca_size={self.pca_size}"
 
-    def _prepare_input(self):
+    def _prepare_input(self, verbosity=1):
         if self.pca_size is None:
             self._prepare_input_raw()
             return
@@ -60,12 +60,13 @@ class MutualInfoPCA(MutualInfo, ABC):
             f"Batch size {batch_size} has to be larger than PCA dim " \
             f"{self.pca_size} in order to run partial fit"
 
-        pca = self.pca_incremental()
+        pca = self.pca_incremental(verbosity)
 
         inputs = []
         targets = []
-        for images, labels in self.data_loader.eval(
-                description="MutualInfo: Applying PCA to input data. Stage 2"):
+        description = "MutualInfo: Applying PCA to input data. Stage 2" \
+            if verbosity >= 1 else None
+        for images, labels in self.data_loader.eval(description):
             images = images.flatten(start_dim=1)
             images_transformed = pca.transform(images)
             images_transformed = torch.from_numpy(images_transformed).float()
@@ -99,7 +100,7 @@ class MutualInfoPCA(MutualInfo, ABC):
             pca = pickle.load(f)
         return pca
 
-    def pca_incremental(self):
+    def pca_incremental(self, verbosity=1):
         """
         Memory efficient Incremental PCA performs the transformation batch-wise
 
@@ -111,8 +112,9 @@ class MutualInfoPCA(MutualInfo, ABC):
         pca = sklearn.decomposition.IncrementalPCA(n_components=self.pca_size,
                                                    copy=False,
                                                    batch_size=BATCH_SIZE)
-        for images, _ in self.data_loader.eval(
-                description="MutualInfo: Applying PCA to input data. Stage 1"):
+        description = "MutualInfo: Applying PCA to input data. Stage 1" \
+            if verbosity >= 1 else None
+        for images, _ in self.data_loader.eval(description):
             if images.shape[0] < self.pca_size:
                 # drop the last batch if it's smaller
                 continue

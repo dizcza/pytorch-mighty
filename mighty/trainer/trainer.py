@@ -9,7 +9,7 @@ from typing import Dict
 import torch
 import torch.nn as nn
 import torch.utils.data
-from tqdm import tqdm
+from tqdm import tqdm, trange
 
 from mighty.loss import PairLossSampler, LossPenalty
 from mighty.models import AutoencoderOutput, MLP
@@ -20,14 +20,13 @@ from mighty.monitor.monitor import Monitor
 from mighty.monitor.mutual_info import MutualInfoNeuralEstimation, \
     MutualInfoStub
 from mighty.monitor.mutual_info.mutual_info import MutualInfo
-from mighty.utils.var_online import MeanOnline
 from mighty.trainer.mask import MaskTrainer
 from mighty.utils.common import find_named_layers, batch_to_cuda, \
     input_from_batch
 from mighty.utils.constants import CHECKPOINTS_DIR
 from mighty.utils.data import DataLoader
 from mighty.utils.prepare import prepare_eval
-
+from mighty.utils.var_online import MeanOnline
 
 __all__ = [
     "Trainer"
@@ -46,7 +45,7 @@ class Trainer(ABC):
         Loss function.
     data_loader : DataLoader
         A data loader.
-    accuracy_measure : Accuracy or None
+    accuracy_measure : Accuracy or None, optional
         Calculates the accuracy from the last layer activations.
         If None, set to :code:`AccuracyArgmax` for a classification task
         and :code:`AccuracyEmbedding` otherwise.
@@ -60,16 +59,21 @@ class Trainer(ABC):
                 accuracy_measure = AccuracyArgmax()
 
         Default: None
-    mutual_info : MutualInfo or None
+    mutual_info : MutualInfo or None, optional
         A handle to compute the mutual information I(X; T) and I(Y; T) [1]_.
         If None, don't compute the mutual information.
         Default: None
-    env_suffix : str
+    env_suffix : str, optional
         The suffix to add to the current environment name.
         Default: ''
-    checkpoint_dir : Path or str
+    checkpoint_dir : Path or str, optional
         The path to store the checkpoints.
         Default: ``${HOME}/.mighty/checkpoints``
+    verbosity : int, optional
+        * 0 - don't print anything
+        * 1 - show the progress with each epoch
+        * 2 - show the progress with each batch
+        Default: 2
 
     References
     ----------
@@ -96,7 +100,8 @@ class Trainer(ABC):
                  accuracy_measure: Accuracy = None,
                  mutual_info=None,
                  env_suffix='',
-                 checkpoint_dir=CHECKPOINTS_DIR):
+                 checkpoint_dir=CHECKPOINTS_DIR,
+                 verbosity=2):
         if torch.cuda.is_available():
             model.cuda()
         self.model = model
@@ -122,6 +127,7 @@ class Trainer(ABC):
         env_suffix = env_suffix.lstrip(' ')
         if env_suffix:
             self.env_name = f'{self.env_name} {env_suffix}'
+        self.verbosity = verbosity
         if accuracy_measure is None:
             if isinstance(self.criterion, PairLossSampler):
                 accuracy_measure = AccuracyEmbedding()
@@ -376,8 +382,9 @@ class Trainer(ABC):
         loss_online = MeanOnline()
 
         if train:
-            loader = self.data_loader.eval(
-                description="Full forward pass (eval)")
+            description = "Full forward pass (eval)" \
+                if self.verbosity >= 2 else None
+            loader = self.data_loader.eval(description)
             self.mutual_info.start_listening()
         else:
             loader = self.data_loader.get(train)
@@ -441,10 +448,10 @@ class Trainer(ABC):
             labels_pred = torch.cat(labels_pred, dim=0)
 
         if labels_true.is_cuda:
-            warnings.warn("labels_true is cuda")
+            warnings.warn("'labels_true' is a cuda tensor")
             labels_true = labels_true.cpu()
         if labels_pred.is_cuda:
-            warnings.warn("labels_pred is cuda")
+            warnings.warn("'labels_pred' is a cuda tensor")
             labels_pred = labels_pred.cpu()
 
         accuracy = self.monitor.update_accuracy_epoch(
@@ -494,6 +501,7 @@ class Trainer(ABC):
         loss_online = MeanOnline()
         for batch in tqdm(self.train_loader,
                           desc="Epoch {:d}".format(epoch),
+                          disable=self.verbosity < 2,
                           leave=False):
             batch = batch_to_cuda(batch)
             loss = self.train_batch(batch)
@@ -536,7 +544,8 @@ class Trainer(ABC):
             monitor_classes = set(self.watch_modules).difference({nn.Conv2d})
             self.mutual_info.prepare(model=self.model,
                                      monitor_layers=tuple(monitor_classes),
-                                     monitor_layers_count=mutual_info_layers)
+                                     monitor_layers_count=mutual_info_layers,
+                                     verbosity=self.verbosity)
 
 
     def train(self, n_epochs=10, mutual_info_layers=0,
@@ -572,13 +581,15 @@ class Trainer(ABC):
            black boxes by meaningful perturbation.
 
         """
-        print(self.model)
+        if self.verbosity >= 2:
+            print(self.model)
         self._prepare_train(mutual_info_layers)
         if n_epochs == 1:
             self.monitor.viz.with_markers = True
 
         loss_epochs = []
-        for epoch in range(self.timer.epoch, self.timer.epoch + n_epochs):
+        for epoch in trange(self.timer.epoch, self.timer.epoch + n_epochs,
+                            disable=self.verbosity != 1):
             self.train_epoch(epoch=epoch)
             loss = self.full_forward_pass(train=True)
             self.full_forward_pass(train=False)

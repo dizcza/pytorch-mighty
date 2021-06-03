@@ -29,7 +29,7 @@ class MutualInfoStub(MutualInfo):  # pragma: no cover
     def plot(self, viz):
         pass
 
-    def _prepare_input(self):
+    def _prepare_input(self, verbosity=1):
         pass
 
     def _process_activations(self, layer_name: str, activations):

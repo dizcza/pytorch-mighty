@@ -43,20 +43,24 @@ class MutualInfoKMeans(MutualInfo):
     def extra_repr(self):
         return f"n_bins={self.n_bins}"
 
-    def _prepare_input(self):
+    def _prepare_input(self, verbosity=1):
         targets = []
         classifier = cluster.MiniBatchKMeans(n_clusters=self.n_bins,
                                              batch_size=BATCH_SIZE,
                                              compute_labels=False)
-        for images, labels in self.data_loader.eval(description="MutualInfo: quantizing input data. Stage 1"):
+        description = "MutualInfo: quantizing input data. Stage 1" \
+            if verbosity >= 1 else None
+        for images, labels in self.data_loader.eval(description):
             images = images.flatten(start_dim=1)
             classifier.partial_fit(images, labels)
             targets.append(labels)
         targets = torch.cat(targets, dim=0)
         self.quantized['target'] = targets.numpy()
 
+        description = "MutualInfo: quantizing input data. Stage 2" \
+            if verbosity >= 1 else None
         centroids_predicted = []
-        for images, _ in self.data_loader.eval(description="MutualInfo: quantizing input data. Stage 2"):
+        for images, _ in self.data_loader.eval(description):
             images = images.flatten(start_dim=1)
             centroids_predicted.append(classifier.predict(images))
         self.quantized['input'] = np.hstack(centroids_predicted)

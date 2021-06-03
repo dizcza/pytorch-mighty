@@ -108,6 +108,7 @@ class ContrastiveLossSampler(PairLossSampler):
 
     def forward(self, outputs, labels):
         n_samples = len(outputs)
+        assert n_samples > 1, "Cannot sample pairs"
         pairs_to_sample = (self.pairs_to_sample(labels),)
         left_indices = torch.randint(low=0, high=n_samples,
                                      size=pairs_to_sample,

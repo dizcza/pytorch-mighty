@@ -29,6 +29,7 @@ class TrainerGrad(Trainer):
         An optimizer (Adam, SGD, etc.).
     scheduler : _LRScheduler or ReduceLROnPlateau, or None
         A learning rate scheduler.
+        Default: None
     **kwargs
         Passed to the base class.
     """
