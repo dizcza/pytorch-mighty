@@ -407,6 +407,7 @@ class Trainer(ABC):
         return loss
 
     def _epoch_finished(self, loss):
+        self.monitor.epoch_finished()
         self.save()
         for online_measure in self.online.values():
             online_measure.reset()
@@ -547,6 +548,14 @@ class Trainer(ABC):
                                      monitor_layers_count=mutual_info_layers,
                                      verbosity=self.verbosity)
 
+    def training_finished(self):
+        """
+        Training is finished callback.
+
+        This function is called right before exiting the :func:`Trainer.train`
+        function.
+        """
+        pass
 
     def train(self, n_epochs=10, mutual_info_layers=0,
               mask_explain_params=None):
@@ -593,9 +602,10 @@ class Trainer(ABC):
             self.train_epoch(epoch=epoch)
             loss = self.full_forward_pass(train=True)
             self.full_forward_pass(train=False)
-            self.monitor.epoch_finished()
             if mask_explain_params:
                 self.train_mask(mask_explain_params)
             self._epoch_finished(loss)
             loss_epochs.append(loss.item())
+        self.training_finished()
+
         return loss_epochs

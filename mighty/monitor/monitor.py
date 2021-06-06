@@ -188,14 +188,16 @@ class Monitor:
         ----------
         level : MonitorLevel, optional
             New monitoring level to apply.
+            * DISABLED - only basic metrics are computed (memory tolerable)
+            * SIGNAL_TO_NOISE - track SNR of the gradients
+            * FULL - SNR, sign flips, weight hist, weight diff
             Default: MonitorLevel.DISABLED
 
         Notes
         -----
-        Advanced monitoring features are memory consuming.
+        Advanced monitoring is memory consuming.
 
         """
-        # Note: advanced monitoring is memory consuming
         self._advanced_monitoring_level = level
         for param_record in self.param_records.values():
             param_record.monitor_level = level
