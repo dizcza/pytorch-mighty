@@ -592,6 +592,7 @@ class Trainer(ABC):
         """
         if self.verbosity >= 2:
             print(self.model)
+        self.timer.n_epochs = n_epochs
         self._prepare_train(mutual_info_layers)
         if n_epochs == 1:
             self.monitor.viz.with_markers = True

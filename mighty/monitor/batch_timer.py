@@ -23,8 +23,9 @@ class BatchTimer:
     """
 
     def __init__(self):
-        self.batches_in_epoch = 1  # will be set later on
         self.batch_id = 0
+        self.batches_in_epoch = 1  # will be set later on
+        self.n_epochs = None  # user-defined no. of epochs to run
 
     def init(self, batches_in_epoch):
         """
