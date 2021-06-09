@@ -679,6 +679,52 @@ class MonitorEmbedding(Monitor):
             ytype='log',
         ))
 
+    def update_pairwise_dist(self, mean, std):
+        r"""
+        Updates L1 mean pairwise distance and intra-STD of embedding centroids.
+
+        .. math::
+            \text{inter-distance} = \frac{pdist(\text{mean}, p=1)}
+            {||\text{mean}||_1}
+
+            \text{intra-STD} = \frac{||\text{std}||_1}{||\text{mean}||_1},
+
+        where :math:`||x||_1 = \frac{\sum_{ij}{|x_{ij}|}}{C}`.
+
+        When these two metrics equalize, the feature vectors, embeddings,
+        become indistinguishable. We want :math:`\text{inter-distance}` to be
+        high and :math:`\text{intra-STD}` to keep low.
+
+        Parameters
+        ----------
+        mean, std : torch.Tensor
+            Tensors of shape `(C, V)`.
+            The mean and standard deviation of `C` clusters (vectors of size
+            `V`).
+
+        Returns
+        -------
+        torch.Tensor
+            A scalar, a proxy to signal-to-noise ratio defined as
+
+            .. math::
+                \frac{\text{inter-distance}}{\text{intra-STD}}
+
+        """
+        if mean is None:
+            return
+
+        l1_norm = mean.norm(p=1, dim=1).mean()
+        pdist = torch.pdist(mean, p=1).mean() / l1_norm
+        std = std.norm(p=1, dim=1).mean() / l1_norm
+        self.viz.line_update(y=[pdist.item(), std.item()], opts=dict(
+            xlabel='Epoch',
+            ylabel='Mean pairwise distance (normalized) and STD',
+            legend=['inter-distance', 'intra-STD'],
+            title='How much do patterns differ in L1 measure?',
+        ))
+        return pdist / std
+
     def clusters_heatmap(self, mean, std, save=False):
         """
         Cluster centers distribution heatmap.
@@ -697,13 +743,6 @@ class MonitorEmbedding(Monitor):
             raise ValueError("The mean and std must have the same shape and "
                              "come from VarianceOnline.get_mean_std().")
 
-        def compute_manhattan_dist(tensor: torch.Tensor):
-            l1_dist = tensor.unsqueeze(dim=1) - tensor.unsqueeze(dim=0)
-            l1_dist = l1_dist.norm(p=1, dim=2)
-            upper_triangle_idx = l1_dist.triu_(1).nonzero(as_tuple=True)
-            l1_dist = l1_dist[upper_triangle_idx].mean()
-            return l1_dist
-
         n_classes = mean.shape[0]
         win = "Embedding activations heatmap"
         opts = dict(
@@ -719,15 +758,6 @@ class MonitorEmbedding(Monitor):
             self.viz.heatmap(mean.cpu(),
                              win=f"{win}. Epoch {self.timer.epoch}",
                              opts=opts)
-        normalizer = mean.norm(p=1, dim=1).mean()
-        outer_distance = compute_manhattan_dist(mean) / normalizer
-        std = std.norm(p=1, dim=1).mean() / normalizer
-        self.viz.line_update(y=[outer_distance.item(), std.item()], opts=dict(
-            xlabel='Epoch',
-            ylabel='Mean pairwise distance (normalized)',
-            legend=['inter-distance', 'intra-STD'],
-            title='How much do patterns differ in L1 measure?',
-        ))
 
     def update_l1_neuron_norm(self, l1_norm: torch.Tensor):
         """
