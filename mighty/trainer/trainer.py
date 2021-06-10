@@ -183,11 +183,16 @@ class Trainer(ABC):
         self.monitor.log(repr(self.mutual_info))
         git_dir = Path(sys.argv[0]).parent
         while str(git_dir) != git_dir.root:
-            commit = subprocess.run(['git', '--git-dir', str(git_dir / '.git'),
-                                     'rev-parse', 'HEAD'],
-                                    stdout=subprocess.PIPE,
-                                    stderr=subprocess.PIPE,
-                                    universal_newlines=True)
+            try:
+                commit = subprocess.run(['git', '--git-dir',
+                                         str(git_dir / '.git'),
+                                         'rev-parse', 'HEAD'],
+                                        stdout=subprocess.PIPE,
+                                        stderr=subprocess.PIPE,
+                                        universal_newlines=True)
+            except FileNotFoundError:
+                # Git is not installed
+                break
             if commit.returncode == 0:
                 self.monitor.log(f"Git location '{str(git_dir)}' "
                                  f"commit: {commit.stdout}")
