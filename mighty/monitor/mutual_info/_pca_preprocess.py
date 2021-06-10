@@ -54,13 +54,12 @@ class MutualInfoPCA(MutualInfo, ABC):
         if self.pca_size is None:
             self._prepare_input_raw()
             return
-        images_batch, _ = self.data_loader.sample()
-        batch_size = images_batch.shape[0]
-        assert batch_size >= self.pca_size, \
-            f"Batch size {batch_size} has to be larger than PCA dim " \
-            f"{self.pca_size} in order to run partial fit"
-
-        pca = self.pca_incremental(verbosity)
+        if self.data_loader.batch_size < self.pca_size:
+            # Batch size has to be larger than the PCA dim in order to run
+            # partial fit
+            pca = self.pca_full()
+        else:
+            pca = self.pca_incremental(verbosity)
 
         inputs = []
         targets = []

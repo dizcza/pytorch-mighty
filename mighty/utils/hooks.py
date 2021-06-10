@@ -71,6 +71,9 @@ def get_layers_ordered(model, input_sample, ignore_layers=(nn.Sequential,),
     for handle in hooks:
         handle.remove()
 
+    if not any(layers_ordered):
+        layers_ordered = [model]
+
     return layers_ordered
 
 

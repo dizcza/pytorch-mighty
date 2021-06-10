@@ -365,8 +365,8 @@ class Monitor:
                 ))
             else:
                 self.viz.histogram(X=param_data.view(-1), win=name, opts=dict(
-                    xlabel='Param norm',
-                    ylabel='# bins (distribution)',
+                    xlabel='Param value',
+                    ylabel='Count',
                     title=name,
                 ))
 
@@ -674,7 +674,7 @@ class MonitorEmbedding(Monitor):
         title = "Embedding activations hist"
         self.viz.histogram(X=activations.flatten(), win=title, opts=dict(
             xlabel='Neuron value',
-            ylabel='# bins (distribution)',
+            ylabel='Count',
             title=title,
             ytype='log',
         ))
