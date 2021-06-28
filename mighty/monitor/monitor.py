@@ -22,7 +22,7 @@ Monitor Parameter Records
 """
 
 
-from collections import UserDict
+from collections import UserDict, defaultdict
 
 import numpy as np
 import torch
@@ -59,9 +59,37 @@ class ParamRecord:
         self.monitor_level = monitor_level
         self.grad_variance = VarianceOnline()
         self.variance = VarianceOnline()
-        self.prev_sign = None
+        self.prev_data = None
+        if monitor_level & MonitorLevel.SIGN_FLIPS:
+            self.prev_data = clone_cpu(param.data)
         self.initial_data = None
+        if monitor_level & MonitorLevel.WEIGHT_INITIAL_DIFFERENCE:
+            self.initial_data = clone_cpu(param.data)
         self.initial_norm = param.data.float().norm(p=2).item()
+
+    @staticmethod
+    def count_sign_flips(new_data, prev_data):
+        """
+        Count the no. of sing flips in `prev_data -> new_data`.
+
+        The default implementation is
+
+        .. code-block:: python
+
+            sum(new_data * prev_data)
+
+        Parameters
+        ----------
+        new_data, prev_data : torch.Tensor
+            New and previous tensors.
+
+        Returns
+        -------
+        sign_flips : int
+            The no. of signs flipped.
+        """
+        sign_flips = (new_data * prev_data < 0).sum().item()
+        return sign_flips
 
     def update_signs(self):
         """
@@ -74,12 +102,12 @@ class ParamRecord:
             Normalized number of sign flips in range ``[0, 1]``.
 
         """
-        param = self.param
-        new_data = clone_cpu(param.data)
-        if self.prev_sign is None:
-            self.prev_sign = new_data
-        sign_flips = (new_data * self.prev_sign < 0).sum().item()
-        self.prev_sign = new_data
+        new_data = clone_cpu(self.param.data)
+        if self.prev_data is None:
+            # The user might turn on the advanced monitoring in the middle.
+            self.prev_data = new_data
+        sign_flips = self.count_sign_flips(new_data, self.prev_data)
+        self.prev_data = new_data
         return sign_flips
 
     def update_grad_variance(self):
@@ -104,7 +132,11 @@ class ParamsDict(UserDict):
     """
     def __init__(self):
         super().__init__()
-        self.sign_flips = 0
+        self.sign_flips = defaultdict(int)
+        self.n_updates = 0
+
+    def reset(self):
+        self.sign_flips.clear()
         self.n_updates = 0
 
     def batch_finished(self):
@@ -112,34 +144,46 @@ class ParamsDict(UserDict):
         Batch finished callback that triggers `update*()` methods of the
         stored param records.
         """
-        def filter_ge(level: MonitorLevel):
+        def filter_level(level: MonitorLevel):
             # filter by greater or equal to the Monitor level
             return (precord for precord in self.values()
-                    if precord.monitor_level.value >= level.value)
+                    if precord.monitor_level & level)
 
         self.n_updates += 1
-        for param_record in filter_ge(MonitorLevel.SIGNAL_TO_NOISE):
-            param_record.update_grad_variance()
-        for param_record in filter_ge(MonitorLevel.FULL):
-            self.sign_flips += param_record.update_signs()
-            param_record.variance.update(param_record.param.data.cpu())
+        for precord in filter_level(MonitorLevel.SIGNAL_TO_NOISE):
+            precord.update_grad_variance()
+        for name, precord in self.items():
+            if precord.monitor_level & MonitorLevel.SIGN_FLIPS:
+                self.sign_flips[name] += precord.update_signs()
+        for precord in filter_level(MonitorLevel.WEIGHT_SNR_TRACE):
+            precord.variance.update(precord.param.data.cpu())
 
-    def plot_sign_flips(self, viz):
+    def plot_sign_flips(self, viz, total=True):
         """
-        Plots the sign flips. Refer to :func:`ParamRecord.update_signs`.
+        Plots the no. of weight sign flips after a batch update. Refer to
+        :func:`ParamRecord.update_signs`.
 
         Parameters
         ----------
         viz : VisdomMighty
             Visdom server instance.
+        total : bool, optional
+            Whether to sum across all the parameters (True) or plot individual
+            parameter sign flips counts (False).
+            Default: True
         """
-        viz.line_update(y=self.sign_flips / self.n_updates, opts=dict(
+        opts = dict(
             xlabel='Epoch',
             ylabel='Sign flips',
             title="Sign flips after optimizer.step()",
-        ))
-        self.sign_flips = 0
-        self.n_updates = 0
+        )
+        if total:
+            sign_flips = sum(self.sign_flips.values()) / self.n_updates
+        else:
+            labels, sign_flips = zip(*self.sign_flips.items())
+            sign_flips = np.divide(sign_flips, self.n_updates)
+            opts['legend'] = list(labels)
+        viz.line_update(y=sign_flips, opts=opts)
 
 
 class Monitor:
@@ -353,6 +397,8 @@ class Monitor:
         """
         Update the model weights histogram.
         """
+        if not self._advanced_monitoring_level & MonitorLevel.WEIGHT_HISTOGRAM:
+            return
         for name, param_record in self.param_records.items():
             param_data = param_record.param.data.cpu()
             if param_data.numel() == 1:
@@ -365,7 +411,7 @@ class Monitor:
                 ))
             else:
                 self.viz.histogram(X=param_data.view(-1), win=name, opts=dict(
-                    xlabel='Param norm',
+                    xlabel='Param value',
                     ylabel='# bins (distribution)',
                     title=name,
                 ))
@@ -377,10 +423,13 @@ class Monitor:
         If mean / std is large, the network is confident in which direction
         to "move". If mean / std is small, the network is making random walk.
         """
+        if not self._advanced_monitoring_level & MonitorLevel.WEIGHT_SNR_TRACE:
+            return
         for name, param_record in self.param_records.items():
             mean, std = param_record.variance.get_mean_std()
             snr = mean / std
-            if not torch.isfinite(snr).all():
+            snr = snr[torch.isfinite(snr)]
+            if snr.nelement() == 0:
                 continue
             snr.pow_(2)
             snr.log10_().mul_(10)
@@ -398,8 +447,7 @@ class Monitor:
         Similar to :func:`Monitor.update_weight_trace_signal_to_noise_ratio`
         but on a smaller time scale.
         """
-        if self._advanced_monitoring_level.value < \
-                MonitorLevel.SIGNAL_TO_NOISE.value:
+        if not self._advanced_monitoring_level & MonitorLevel.SIGNAL_TO_NOISE:
             # SNR is not monitored
             return
         snr = []
@@ -417,7 +465,7 @@ class Monitor:
 
             snr.append(mean / std)
             legend.append(name)
-            if self._advanced_monitoring_level is MonitorLevel.FULL:
+            if self._advanced_monitoring_level == MonitorLevel.FULL:
                 if (std == 0).all():
                     # skip the first update
                     continue
@@ -543,11 +591,12 @@ class Monitor:
             monitored_function(self.viz)
         self.update_grad_norm()
         self.update_gradient_signal_to_noise_ratio()
-        if self._advanced_monitoring_level is MonitorLevel.FULL:
+        if self._advanced_monitoring_level & MonitorLevel.SIGN_FLIPS:
             self.param_records.plot_sign_flips(self.viz)
-            self.update_initial_difference()
-            # self.update_weight_trace_signal_to_noise_ratio()
-            self.update_weight_histogram()
+        self.param_records.reset()
+        self.update_initial_difference()
+        self.update_weight_trace_signal_to_noise_ratio()
+        self.update_weight_histogram()
         self.reset()
 
     def reset(self):
@@ -580,6 +629,9 @@ class Monitor:
         Update the L1 normalized difference between the current and starting
         weights (before training).
         """
+        if not self._advanced_monitoring_level \
+                & MonitorLevel.WEIGHT_INITIAL_DIFFERENCE:
+            return
         legend = []
         dp_normed = []
         for name, precord in self.param_records.items():
