@@ -183,11 +183,16 @@ class Trainer(ABC):
         self.monitor.log(repr(self.mutual_info))
         git_dir = Path(sys.argv[0]).parent
         while str(git_dir) != git_dir.root:
-            commit = subprocess.run(['git', '--git-dir', str(git_dir / '.git'),
-                                     'rev-parse', 'HEAD'],
-                                    stdout=subprocess.PIPE,
-                                    stderr=subprocess.PIPE,
-                                    universal_newlines=True)
+            try:
+                commit = subprocess.run(['git', '--git-dir',
+                                         str(git_dir / '.git'),
+                                         'rev-parse', 'HEAD'],
+                                        stdout=subprocess.PIPE,
+                                        stderr=subprocess.PIPE,
+                                        universal_newlines=True)
+            except FileNotFoundError:
+                # Git is not installed
+                break
             if commit.returncode == 0:
                 self.monitor.log(f"Git location '{str(git_dir)}' "
                                  f"commit: {commit.stdout}")
@@ -548,6 +553,14 @@ class Trainer(ABC):
                                      monitor_layers_count=mutual_info_layers,
                                      verbosity=self.verbosity)
 
+    def training_started(self):
+        """
+        Training is started callback.
+
+        This function is called before training the first epoch.
+        """
+        pass
+
     def training_finished(self):
         """
         Training is finished callback.
@@ -597,6 +610,7 @@ class Trainer(ABC):
         if n_epochs == 1:
             self.monitor.viz.with_markers = True
 
+        self.training_started()
         loss_epochs = []
         for epoch in trange(self.timer.epoch, self.timer.epoch + n_epochs,
                             disable=self.verbosity != 1):

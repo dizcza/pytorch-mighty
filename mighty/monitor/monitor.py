@@ -726,7 +726,7 @@ class MonitorEmbedding(Monitor):
         title = "Embedding activations hist"
         self.viz.histogram(X=activations.flatten(), win=title, opts=dict(
             xlabel='Neuron value',
-            ylabel='# bins (distribution)',
+            ylabel='Count',
             title=title,
             ytype='log',
         ))
