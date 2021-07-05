@@ -765,6 +765,9 @@ class MonitorEmbedding(Monitor):
         """
         if mean is None:
             return
+        if mean.shape != std.shape:
+            raise ValueError("The mean and std must have the same shape and "
+                             "come from VarianceOnline.get_mean_std().")
 
         l1_norm = mean.norm(p=1, dim=1).mean()
         pdist = torch.pdist(mean, p=1).mean() / l1_norm
@@ -777,23 +780,18 @@ class MonitorEmbedding(Monitor):
         ))
         return pdist / std
 
-    def clusters_heatmap(self, mean, std, save=False):
+    def clusters_heatmap(self, mean, save=False):
         """
         Cluster centers distribution heatmap.
 
         Parameters
         ----------
-        mean, std : torch.Tensor
-            Tensors of shape `(C, V)`.
-            The mean and standard deviation of `C` clusters (vectors of size
-            `V`).
+        mean : (C, V) torch.Tensor
+            The mean of `C` clusters (vectors of size `V`).
 
         """
         if mean is None:
             return
-        if mean.shape != std.shape:
-            raise ValueError("The mean and std must have the same shape and "
-                             "come from VarianceOnline.get_mean_std().")
 
         n_classes = mean.shape[0]
         win = "Embedding activations heatmap"
