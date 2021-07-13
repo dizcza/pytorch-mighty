@@ -780,7 +780,7 @@ class MonitorEmbedding(Monitor):
         ))
         return pdist / std
 
-    def clusters_heatmap(self, mean, save=False):
+    def clusters_heatmap(self, mean, title=None, save=False):
         """
         Cluster centers distribution heatmap.
 
@@ -788,16 +788,27 @@ class MonitorEmbedding(Monitor):
         ----------
         mean : (C, V) torch.Tensor
             The mean of `C` clusters (vectors of size `V`).
+        title : str or None, optional
+            An optional title to the plot.
+            If None, set to "Embedding activations heatmap".
+            Default: None
+        save : bool, optional
+            Save the heatmap plot in a separate fixed window.
+            Default: False
 
         """
         if mean is None:
             return
 
         n_classes = mean.shape[0]
-        win = "Embedding activations heatmap"
+        if title is None:
+            win = "Embedding activations heatmap"
+            title = f"{win}. Epoch {self.timer.epoch}"
+        else:
+            win = title
         opts = dict(
-            title=f"{win}. Epoch {self.timer.epoch}",
-            xlabel='Neuron ID',
+            title=title,
+            xlabel='Neuron',
             ylabel='Label',
             rownames=list(map(str, range(n_classes))),
         )

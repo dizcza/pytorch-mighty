@@ -11,6 +11,8 @@ Stubs
 
 from typing import Optional, Callable
 
+import torch
+import torch.nn as nn
 from torch.optim.optimizer import Optimizer
 
 
@@ -31,3 +33,8 @@ class OptimizerStub(Optimizer):
 
     def load_state_dict(self, state_dict: dict) -> None:
         pass
+
+
+class CriterionStub(nn.Module):
+    def forward(self, *args, **kwargs):
+        return torch.Tensor([0.0])
