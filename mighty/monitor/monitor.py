@@ -814,11 +814,9 @@ class MonitorEmbedding(Monitor):
         )
         if n_classes <= self.n_classes_format_ytickstep_1:
             opts.update(ytickstep=1)
-        self.viz.heatmap(mean.cpu(), win=win, opts=opts)
         if save:
-            self.viz.heatmap(mean.cpu(),
-                             win=f"{win}. Epoch {self.timer.epoch}",
-                             opts=opts)
+            win = f"{win}. Epoch {self.timer.epoch}"
+        self.viz.heatmap(mean.cpu(), win=win, opts=opts)
 
     def update_l1_neuron_norm(self, l1_norm: torch.Tensor):
         """
