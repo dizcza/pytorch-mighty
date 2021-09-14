@@ -384,8 +384,6 @@ class Trainer(ABC):
         mode_saved = self.model.training
         self.model.train(False)
         self.accuracy_measure.reset_labels()
-        for online_measure in self.online.values():
-            online_measure.reset()
         loss_online = MeanOnline()
 
         if train:

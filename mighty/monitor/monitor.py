@@ -346,8 +346,7 @@ class Monitor:
             return
         self.viz.line_update(loss.item(), opts=dict(
             xlabel='Epoch',
-            ylabel='Loss',
-            title=f'Loss'
+            title='Loss'
         ), name=mode)
 
     def update_accuracy(self, accuracy, mode='batch'):
