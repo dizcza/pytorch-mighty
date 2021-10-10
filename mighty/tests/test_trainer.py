@@ -95,7 +95,7 @@ class TrainerTestCase(unittest.TestCase):
                                    scheduler=self.scheduler)
         trainer.env_name = "pytorch-mighty tests"
         loss_epochs = trainer.train(n_epochs=1, mutual_info_layers=0)
-        assert_array_almost_equal(loss_epochs, [0.63], decimal=2)
+        assert_array_almost_equal(loss_epochs, [0.58], decimal=1)
         self.assertEqual(trainer.timer.n_epochs, 1)
         self.assertEqual(trainer.timer.epoch, 1)
 

@@ -47,7 +47,7 @@ jobs:
       - run: pip install nose
       - python/save-cache:
           key: pip
-      - run: nosetests --with-coverage --cover-package=mighty mighty/tests
+      - run: nosetests --cover-package=mighty mighty/tests
 
 workflows:
   main:
