@@ -95,4 +95,4 @@ Finally, navigate to http://localhost:8097 to see the training progress.
 * [sparse-representation](https://github.com/dizcza/sparse-representation) - Basis Pursuit solvers for the P0- and P1-problems, which encode the data into sparse vectors of high dimensionality.
 * [entropy-estimators](https://github.com/dizcza/entropy-estimators) - estimate Entropy and Mutual Information between multivariate random variables.
 
-Check-out more examples on http://85.217.171.57:8097. Give your browser a few minutes to parse the json data.
+Check-out more examples on http://visdom.kyivaigroup.com:8097/. Give your browser a few minutes to parse the json data.
