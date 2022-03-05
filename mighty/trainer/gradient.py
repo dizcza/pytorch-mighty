@@ -1,5 +1,7 @@
+import warnings
 from typing import Union
 
+import torch
 import torch.nn as nn
 from torch.optim.lr_scheduler import _LRScheduler, ReduceLROnPlateau
 from torch.optim.optimizer import Optimizer
@@ -70,8 +72,11 @@ class TrainerGrad(Trainer):
         self.optimizer.zero_grad()
         outputs = self._forward(batch)
         loss = self._get_loss(batch, outputs)
-        loss.backward()
-        self.optimizer.step(closure=None)
+        if torch.isnan(loss).item():
+            warnings.warn("NaN loss")
+        else:
+            loss.backward()
+            self.optimizer.step(closure=None)
         return loss
 
     def _epoch_finished(self, loss):
@@ -89,7 +94,7 @@ class TrainerGrad(Trainer):
             state['scheduler'] = self.scheduler.state_dict()
         return state
 
-    def restore(self, checkpoint_path=None, best=False, strict=True):
+    def restore(self, checkpoint_path=None, best=None, strict=True):
         checkpoint_state = super().restore(checkpoint_path, best=best,
                                            strict=strict)
         try:

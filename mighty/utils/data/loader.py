@@ -84,9 +84,12 @@ class DataLoader:
         """
         dataset = self.dataset_cls(DATA_DIR, train=train, download=True,
                                    transform=self.transform)
+        shuffle = train
+        if isinstance(dataset, torch.utils.data.IterableDataset):
+            shuffle = False
         loader = self.loader_cls(dataset,
                                  batch_size=self.batch_size,
-                                 shuffle=train,
+                                 shuffle=shuffle,
                                  num_workers=self.num_workers)
         return loader
 

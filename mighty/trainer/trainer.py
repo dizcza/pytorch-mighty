@@ -86,12 +86,7 @@ class Trainer(ABC):
     https://github.com/dizcza/entropy-estimators
     """
 
-    watch_modules = (nn.Linear, nn.Conv2d, MLP)
-
-    # A key-word to determine the criteria for the "best" score.
-    # The value of the tag is irrelevant.
-    # By default, the accuracy is used as the best score measure.
-    best_score_type = 'accuracy'
+    watch_modules = (nn.Linear, nn.Conv2d, MLP, nn.RNNBase, nn.RNNCellBase)
 
     def __init__(self,
                  model: nn.Module,
@@ -137,7 +132,7 @@ class Trainer(ABC):
         self.accuracy_measure = accuracy_measure
         self.monitor = self._init_monitor(mutual_info)
         self.online = self._init_online_measures()
-        self.best_score = 0.
+        self.best_score = {}
 
     @property
     def epoch(self):
@@ -146,14 +141,15 @@ class Trainer(ABC):
         """
         return self.timer.epoch
 
-    def checkpoint_path(self, best=False):
+    def checkpoint_path(self, best=None):
         """
         Get the checkpoint path, given the mode.
 
         Parameters
         ----------
-        best : bool
-            The best (True) or normal (False) mode.
+        best : str or None
+            Tag name. If set, the path will be expanded to ``".../best/tag"``.
+            Default: None
 
         Returns
         -------
@@ -161,8 +157,9 @@ class Trainer(ABC):
             Checkpoint path.
         """
         checkpoint_dir = self.checkpoint_dir
-        if best:
-            checkpoint_dir = self.checkpoint_dir / "best"
+        if best is not None:
+            checkpoint_dir = self.checkpoint_dir / "best" / best
+            checkpoint_dir.mkdir(parents=True, exist_ok=True)
         return checkpoint_dir / (self.env_name + '.pt')
 
     def monitor_functions(self):
@@ -228,7 +225,7 @@ class Trainer(ABC):
         """
         raise NotImplementedError()
 
-    def update_best_score(self, score):
+    def update_best_score(self, score, score_type='loss'):
         """
         If :code:`score` is greater than the :code:`self.best_score`, save
         the model.
@@ -242,26 +239,31 @@ class Trainer(ABC):
         score : float
             The model score at the current epoch. The higher, the better.
             The simplest way to use this function is set :code:`score = -loss`.
+        score_type : str, optional
+            A key-word to determine the criteria for the "best" score.
+            The name of the tag is irrelevant.
+            Default: 'loss'
         """
         # This function can be called multiple times from different functions
         # but only one call will lead to updating the score and saving the
         # best model.
-        if self.best_score_type == self.__class__.best_score_type \
-                and score > self.best_score:
-            self.best_score = score
-            self.save(best=True)
+        if score_type not in self.best_score \
+                or score > self.best_score[score_type]:
+            self.best_score[score_type] = score
+            self.save(best=score_type)
             self.monitor.log(f"[epoch={self.timer.epoch}] "
-                             f"best score: {self.best_score}")
+                             f"'{score_type}' best score: {score}")
 
-    def save(self, best=False):
+    def save(self, best=None):
         """
         Saves the trainer and the model parameters to
         :code:`self.checkpoint_path(best)`.
 
         Parameters
         ----------
-        best : bool
-            The mode (refer to :func:`Trainer.checkpoint_path`).
+        best : str or None
+            Tag name. If set, the path will be expanded to ``".../best/tag"``.
+            Default: None
 
         See Also
         --------
@@ -288,7 +290,7 @@ class Trainer(ABC):
             "best_score": self.best_score,
         }
 
-    def restore(self, checkpoint_path=None, best=False, strict=True):
+    def restore(self, checkpoint_path=None, best=None, strict=True):
         """
         Restores the trainer progress and the model from the path.
 
@@ -298,8 +300,8 @@ class Trainer(ABC):
             Trainer checkpoint path to restore. If None, the default path
             :code:`self.checkpoint_path()` is used.
             Default: None
-        best : bool
-            The mode (refer to :func:`Trainer.checkpoint_path`).
+        best : str or None
+            Best or latest (refer to :func:`Trainer.checkpoint_path`).
         strict : bool
             Strict model loading or not.
 
@@ -407,6 +409,7 @@ class Trainer(ABC):
 
         loss = loss_online.get_mean()
         self.monitor.update_loss(loss, mode='train' if train else 'test')
+        self.update_best_score(score=-loss.item(), score_type='loss')
         self.update_accuracy(train=train)
 
         return loss
@@ -462,7 +465,7 @@ class Trainer(ABC):
 
         accuracy = self.monitor.update_accuracy_epoch(
             labels_pred, labels_true, mode='train' if train else 'test')
-        self.update_best_score(accuracy)
+        self.update_best_score(accuracy.item(), score_type='accuracy')
 
         return accuracy
 
