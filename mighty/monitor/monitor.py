@@ -29,6 +29,7 @@ import torch
 import torch.nn as nn
 import torch.utils.data
 from sklearn.metrics import confusion_matrix
+import torch.nn.functional as F
 
 from mighty.monitor.accuracy import calc_accuracy, Accuracy
 from mighty.monitor.batch_timer import timer, ScheduleExp
@@ -224,7 +225,7 @@ class Monitor:
         """
         return self.viz is not None
 
-    def advanced_monitoring(self, level=MonitorLevel.DISABLED):
+    def advanced_monitoring(self, level=MonitorLevel.DEFAULT):
         """
         Sets the extent of monitoring.
 
@@ -235,7 +236,7 @@ class Monitor:
             * DISABLED - only basic metrics are computed (memory tolerable)
             * SIGNAL_TO_NOISE - track SNR of the gradients
             * FULL - SNR, sign flips, weight hist, weight diff
-            Default: MonitorLevel.DISABLED
+            Default: MonitorLevel.NORMAL
 
         Notes
         -----
@@ -510,6 +511,9 @@ class Monitor:
         title = f"Confusion matrix '{mode}'"
         if len(labels_true.unique()) <= self.n_classes_format_ytickstep_1:
             # don't plot huge matrices
+            if labels_true.ndim == 2:
+                onehot = F.one_hot(labels_pred, num_classes=labels_true.shape[1])
+                labels_true = (labels_true * onehot).argmax(dim=1)
             confusion = confusion_matrix(labels_true, labels_pred)
             self.viz.heatmap(confusion, win=title, opts=dict(
                 title=title,

@@ -25,7 +25,7 @@ def ctransform(x):
     """
     xi = np.argsort(np.atleast_2d(x))
     xr = np.argsort(xi)
-    cx = (xr + 1).astype(np.float) / (xr.shape[-1] + 1)
+    cx = (xr + 1).astype(np.float32) / (xr.shape[-1] + 1)
     return cx
 
 

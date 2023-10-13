@@ -62,11 +62,12 @@ def get_layers_ordered(model, input_sample, ignore_layers=(nn.Sequential,),
 
     register_hooks(model)
 
-    if isinstance(input_sample, torch.Tensor) and input_sample.ndim == 3:
-        input_sample = input_sample.unsqueeze(dim=0)  # batch of 1 sample
     input_sample = batch_to_cuda(input_sample)
     with torch.no_grad():
-        model(input_sample)
+        try:
+            model(input_sample)
+        except Exception as e:
+            model(input_sample.unsqueeze(dim=0))
 
     for handle in hooks:
         handle.remove()

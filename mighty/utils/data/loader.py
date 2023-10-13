@@ -142,10 +142,15 @@ class DataLoader:
         """
         return next(iter(self.eval()))
 
+    @staticmethod
+    def _shorten(str_repr):
+        str_repr = str(str_repr)
+        return str_repr if len(str_repr) < 50 else f"{str_repr[:50]}..."
+
     def __repr__(self):
         return f"{self.__class__.__name__}({self.dataset_cls.__name__}, " \
                f"has_labels={self.has_labels}, " \
-               f"transform={self.transform}, batch_size={self.batch_size}, " \
+               f"transform={self._shorten(self.transform)}, batch_size={self.batch_size}, " \
                f"eval_size={self.eval_size}, " \
                f"num_workers={self.num_workers}), normalize_inverse=" \
-               f"{repr(self.normalize_inverse)})"
+               f"{self._shorten(self.normalize_inverse)})"

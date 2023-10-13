@@ -100,7 +100,7 @@ def get_normalize(transform, normalize_cls=Normalize):
     return None
 
 
-def dataset_mean_std(dataset_cls: type):
+def dataset_mean_std(dataset_cls: type, verbose=False):
     """
     Estimates dataset mean and std.
 
@@ -108,6 +108,9 @@ def dataset_mean_std(dataset_cls: type):
     ----------
     dataset_cls : type
         A dataset class.
+    verbose : bool, optional
+        Verbosity flag.
+        Default: False
 
     Returns
     -------
@@ -125,7 +128,8 @@ def dataset_mean_std(dataset_cls: type):
         var_online = VarianceOnlineBatch()
         for batch in tqdm(
                 loader,
-                desc=f"{dataset_cls.__name__}: running online mean, std"):
+                desc=f"{dataset_cls.__name__}: running online mean, std",
+                disable=not verbose):
             input = input_from_batch(batch)
             var_online.update(input)
         mean, std = var_online.get_mean_std()

@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torchvision.models
+from torchvision.models.vgg import VGG19_Weights
 from PIL import Image
 from torchvision.datasets import MNIST
 
@@ -33,7 +34,7 @@ def train_mask():
     """
     Train explainable mask for an image from ImageNet, using pretrained model.
     """
-    model = torchvision.models.vgg19(pretrained=True)
+    model = torchvision.models.vgg19(weights=VGG19_Weights.DEFAULT)
     model.eval()
     for param in model.parameters():
         param.requires_grad_(False)
@@ -128,6 +129,7 @@ def train_autoencoder(n_epoch=60, dataset_cls=MNIST):
 if __name__ == '__main__':
     set_seed(26)
     # torch.backends.cudnn.benchmark = True
-    train_embedder()
+    # train_embedder()
+    train_mask()
     # train_autoencoder()
     # train_grad()

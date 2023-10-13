@@ -14,13 +14,18 @@ from abc import ABC
 
 import torch
 import torch.utils.data
+import torch.nn.functional as F
 
 from mighty.utils.var_online import MeanOnlineLabels
 from mighty.utils.signal import compute_distance
 
 
 def calc_accuracy(labels_true, labels_predicted) -> float:
-    accuracy = (labels_true == labels_predicted).float().mean()
+    if labels_true.ndim == labels_predicted.ndim:
+        accuracy = (labels_true == labels_predicted).float().mean()
+    else:
+        onehot = F.one_hot(labels_predicted, num_classes=labels_true.shape[1])
+        accuracy = (labels_true * onehot).sum(dim=1).float().mean()
     return accuracy.item()
 
 
@@ -64,7 +69,7 @@ class Accuracy(ABC):
 
         Parameters
         ----------
-        output_test : torch.Tensor or tuple
+        outputs_test : torch.Tensor or tuple
             The output of a model.
 
         Returns
@@ -80,7 +85,7 @@ class Accuracy(ABC):
 
         Parameters
         ----------
-        output_test : torch.Tensor or tuple
+        outputs_test : torch.Tensor or tuple
             The output of a model.
 
         Returns

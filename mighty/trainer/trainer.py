@@ -465,7 +465,7 @@ class Trainer(ABC):
 
         accuracy = self.monitor.update_accuracy_epoch(
             labels_pred, labels_true, mode='train' if train else 'test')
-        self.update_best_score(accuracy.item(), score_type='accuracy')
+        self.update_best_score(accuracy, score_type='accuracy')
 
         return accuracy
 

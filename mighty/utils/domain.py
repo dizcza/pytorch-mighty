@@ -16,3 +16,5 @@ class MonitorLevel:
     WEIGHT_HISTOGRAM          = 0b01000  # weight histograms
     WEIGHT_SNR_TRACE          = 0b10000  # how strong the weight signal is
     FULL                      = 0b11111  # everything
+
+    DEFAULT = SIGNAL_TO_NOISE | SIGN_FLIPS | WEIGHT_INITIAL_DIFFERENCE
