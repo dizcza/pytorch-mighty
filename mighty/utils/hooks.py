@@ -17,7 +17,9 @@ import torch
 import torch.nn as nn
 
 from mighty.utils.common import batch_to_cuda
-from mighty.utils.constants import DUMPS_DIR
+from mighty.utils.constants import DATA_DIR
+
+DUMPS_DIR = DATA_DIR / "dumps"
 
 
 def get_layers_ordered(model, input_sample, ignore_layers=(nn.Sequential,),

@@ -5,6 +5,7 @@ Model starters.
     :toctree: toctree/models/
 
     MLP
+    MLPDropout
     AutoencoderLinear
     SerializableModule
 
@@ -13,5 +14,5 @@ Model starters.
 
 from .autoencoder import AutoencoderLinear, AutoencoderOutput
 from .flatten import Flatten, Reshape
-from .mlp import MLP
+from .mlp import MLP, MLPDropout
 from .serialize import SerializableModule

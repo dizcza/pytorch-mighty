@@ -285,6 +285,7 @@ class Trainer(ABC):
         """
         return {
             "model_state": self.model.state_dict(),
+            "data_norm": self.data_loader.state_dict(),
             "epoch": self.timer.epoch,
             "env_name": self.env_name,
             "best_score": self.best_score,

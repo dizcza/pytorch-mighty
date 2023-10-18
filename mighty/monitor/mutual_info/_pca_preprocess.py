@@ -7,8 +7,10 @@ import torch
 import torch.utils.data
 
 from mighty.monitor.mutual_info.mutual_info import MutualInfo
-from mighty.utils.constants import BATCH_SIZE, PCA_DIR
+from mighty.utils.constants import BATCH_SIZE, DATA_DIR
 from mighty.utils.data import DataLoader
+
+PCA_DIR = DATA_DIR / "pca"
 
 
 class MutualInfoPCA(MutualInfo, ABC):

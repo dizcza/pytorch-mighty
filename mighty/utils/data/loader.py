@@ -17,7 +17,7 @@ from torchvision.transforms import ToTensor
 from tqdm import tqdm
 
 from mighty.utils.constants import DATA_DIR, BATCH_SIZE
-from mighty.utils.data.normalize import get_normalize_inverse
+from mighty.utils.data.normalize import get_normalize_inverse, get_normalize
 
 
 class DataLoader:
@@ -154,3 +154,12 @@ class DataLoader:
                f"eval_size={self.eval_size}, " \
                f"num_workers={self.num_workers}), normalize_inverse=" \
                f"{self._shorten(self.normalize_inverse)})"
+
+    def state_dict(self):
+        normalize = get_normalize(self.transform)
+        if normalize is None:
+            return None
+        return {
+            "mean": normalize.mean,
+            "std": normalize.std
+        }

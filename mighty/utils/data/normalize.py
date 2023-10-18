@@ -100,7 +100,7 @@ def get_normalize(transform, normalize_cls=Normalize):
     return None
 
 
-def dataset_mean_std(dataset_cls: type, verbose=False):
+def dataset_mean_std(dataset_cls: type, cache=True, verbose=False):
     """
     Estimates dataset mean and std.
 
@@ -108,6 +108,9 @@ def dataset_mean_std(dataset_cls: type, verbose=False):
     ----------
     dataset_cls : type
         A dataset class.
+    cache : bool, optional
+        Compute once (True) or every time (False).
+        Default: True
     verbose : bool, optional
         Verbosity flag.
         Default: False
@@ -120,7 +123,7 @@ def dataset_mean_std(dataset_cls: type, verbose=False):
     """
     mean_std_file = (DATA_DIR / "mean_std" / dataset_cls.__name__
                      ).with_suffix('.pt')
-    if not mean_std_file.exists():
+    if not cache or not mean_std_file.exists():
         dataset = dataset_cls(DATA_DIR, train=True, download=True,
                               transform=ToTensor())
         loader = torch.utils.data.DataLoader(dataset, batch_size=BATCH_SIZE,
