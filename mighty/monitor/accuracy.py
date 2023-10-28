@@ -20,6 +20,14 @@ from mighty.utils.var_online import MeanOnlineLabels
 from mighty.utils.signal import compute_distance
 
 
+__all__ = [
+    "calc_accuracy",
+    "Accuracy",
+    "AccuracyArgmax",
+    "AccuracyEmbedding"
+]
+
+
 def calc_accuracy(labels_true, labels_predicted) -> float:
     if labels_true.ndim == labels_predicted.ndim:
         accuracy = (labels_true == labels_predicted).float().mean()

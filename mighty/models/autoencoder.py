@@ -39,18 +39,26 @@ class AutoencoderLinear(nn.Module):
 
     """
 
-    def __init__(self, *fc_sizes):
+    def __init__(self, *fc_sizes, p_drop=0.5, p_drop_input=0.25):
         super().__init__()
         encoder = []
         for in_features, out_features in zip(fc_sizes[:-1], fc_sizes[1:]):
+            encoder.append(nn.Dropout(p=p_drop_input if in_features == fc_sizes[0] else p_drop))
             encoder.append(nn.Linear(in_features, out_features))
             encoder.append(nn.ReLU(inplace=True))
 
-        input_dim = fc_sizes[0]
         self.encoding_dim = fc_sizes[-1]
 
+        decoder = []
+        fc_sizes = fc_sizes[::-1]
+        for in_features, out_features in zip(fc_sizes[:-1], fc_sizes[1:]):
+            decoder.append(nn.Dropout(p=p_drop))
+            decoder.append(nn.Linear(in_features, out_features))
+            decoder.append(nn.ReLU(inplace=True))
+        decoder.pop()  # remove the last ReLU layer
+
         self.encoder = nn.Sequential(*encoder)
-        self.decoder = nn.Linear(self.encoding_dim, input_dim)
+        self.decoder = nn.Sequential(*decoder)
 
     def forward(self, x):
         """

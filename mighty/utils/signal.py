@@ -15,6 +15,15 @@ import torch
 import torch.nn.functional as F
 
 
+__all__ = [
+    "compute_distance",
+    "exponential_moving_average",
+    "to_onehot",
+    "peak_to_signal_noise_ratio",
+    "compute_sparsity"
+]
+
+
 def compute_distance(input1, input2, metric, dim=1):
     if metric == 'cosine':
         dist = 1 - F.cosine_similarity(input1, input2, dim=dim)

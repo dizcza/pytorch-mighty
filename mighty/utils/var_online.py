@@ -20,6 +20,17 @@ import torch
 import torch.utils.data
 
 
+__all__ = [
+    "MeanOnline",
+    "VarianceOnline",
+    "MeanOnlineBatch",
+    "SumOnlineBatch",
+    "VarianceOnlineBatch",
+    "MeanOnlineLabels",
+    "VarianceOnlineLabels"
+]
+
+
 class MeanOnline:
     """
     Online sample mean aggregate. Works with scalars, vectors, and
@@ -209,8 +220,7 @@ class VarianceOnlineBatch(VarianceOnline):
             self.mean = torch.zeros_like(tensor[0])
             self.M2 = torch.zeros_like(tensor[0])
         delta_var = tensor - self.mean
-        delta_mean = tensor.sum(dim=0).sub_(self.mean * batch_size
-                                                ).div_(self.count)
+        delta_mean = tensor.sum(dim=0).sub_(self.mean * batch_size).div_(self.count)
         self.mean.add_(delta_mean)
         delta_var.mul_(tensor - self.mean)
         self.M2 += torch.sum(delta_var, dim=0)

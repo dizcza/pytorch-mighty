@@ -21,6 +21,11 @@ from mighty.utils.constants import DATA_DIR
 
 DUMPS_DIR = DATA_DIR / "dumps"
 
+__all__ = [
+    "get_layers_ordered",
+    "DumpActivationsHook"
+]
+
 
 def get_layers_ordered(model, input_sample, ignore_layers=(nn.Sequential,),
                        ignore_children=()):

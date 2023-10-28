@@ -13,6 +13,12 @@ Convert a model to the train or test mode
 import torch.nn as nn
 
 
+__all__ = [
+    "ModelMode",
+    "prepare_eval"
+]
+
+
 class ModelMode:
     """
     Stores the model state with its parameters to be restored later on.

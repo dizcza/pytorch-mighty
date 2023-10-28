@@ -16,6 +16,12 @@ import torch.nn as nn
 from torch.optim.optimizer import Optimizer
 
 
+__all__ = [
+    "OptimizerStub",
+    "CriterionStub"
+]
+
+
 class OptimizerStub(Optimizer):
     """
     An Optimizer stub for trainers that update model weights in a gradient-free

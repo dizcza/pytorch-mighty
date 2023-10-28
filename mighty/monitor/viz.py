@@ -20,6 +20,11 @@ from mighty.monitor.batch_timer import timer
 from mighty.utils.constants import VISDOM_LOGS_DIR
 
 
+__all__ = [
+    "VisdomMighty"
+]
+
+
 class VisdomMighty(visdom.Visdom):
     """
     A Visdom server that updates measures in online fashion.

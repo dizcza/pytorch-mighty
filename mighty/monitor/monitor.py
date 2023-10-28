@@ -40,6 +40,15 @@ from mighty.utils.common import clone_cpu
 from mighty.utils.domain import MonitorLevel
 
 
+__all__ = [
+    "ParamRecord",
+    "ParamsDict",
+    "Monitor",
+    "MonitorEmbedding",
+    "MonitorAutoencoder"
+]
+
+
 class ParamRecord:
     """
     A parameter record, created by a monitor, that tracks parameter statistics
@@ -893,15 +902,30 @@ class MonitorAutoencoder(MonitorEmbedding):
             empty_space = torch.ones_like(images_stacked[0])
             images_stacked.append(empty_space)
         images_stacked.pop()  # remove the last empty batch pad
-        images_stacked = torch.cat(images_stacked, dim=0)
-        images_stacked.clamp_(0, 1)
-        labels = [f'[{mode.upper()}] Original (Top)', 'Reconstructed', *labels]
-        self.viz.images(images_stacked,
-                        nrow=n_take, win=f'autoencoder {mode}', opts=dict(
-                title=' | '.join(labels),
-                width=1000,
-                height=None,
-            ))
+        images_stacked = torch.cat(images_stacked, dim=0).squeeze_()
+        if images_stacked.ndim == 2:
+            # (2xB, L) time series
+            images, reconstructed = images_stacked.tensor_split(len(combined))[:2]
+            images = images.numpy()
+            reconstructed = reconstructed.numpy()
+            for i, (im, rec) in enumerate(zip(images, reconstructed)):
+                ts = np.c_[im, rec]
+                title = f"Reconstructed {i}"
+                self.viz.line(Y=ts, X=np.arange(len(ts)), win=title, opts=dict(
+                    title=title,
+                    label=['orig', 'reconstructed']
+                ))
+                self.viz.update_window_opts(win=title, opts=dict(legend=[], title=title))
+        else:
+            # (2xB, H, W) images
+            images_stacked.clamp_(0, 1)
+            labels = [f'[{mode.upper()}] Original (Top)', 'Reconstructed', *labels]
+            self.viz.images(images_stacked,
+                            nrow=n_take, win=f'autoencoder {mode}', opts=dict(
+                    title=' | '.join(labels),
+                    width=1000,
+                    height=None,
+                ))
 
     def plot_reconstruction_error(self, pixel_missed, thresholds,
                                   optimal_id=None):

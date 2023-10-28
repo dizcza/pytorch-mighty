@@ -133,6 +133,7 @@ class Trainer(ABC):
         self.monitor = self._init_monitor(mutual_info)
         self.online = self._init_online_measures()
         self.best_score = {}
+        self.epoch_finished_callbacks = []
 
     @property
     def epoch(self):
@@ -416,6 +417,8 @@ class Trainer(ABC):
         return loss
 
     def _epoch_finished(self, loss):
+        for clbk in self.epoch_finished_callbacks:
+            clbk(loss)
         self.monitor.epoch_finished()
         self.save()
         for online_measure in self.online.values():
