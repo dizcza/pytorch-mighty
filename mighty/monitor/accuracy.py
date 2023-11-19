@@ -217,10 +217,10 @@ class AccuracyEmbedding(Accuracy):
     def partial_fit(self, outputs_batch, labels_batch):
         super().partial_fit(outputs_batch=outputs_batch,
                             labels_batch=labels_batch)
-        outputs_batch = outputs_batch.detach().cpu()
+        outputs_batch = outputs_batch.detach()
         self.centroids_dict.update(outputs_batch, labels_batch)
         if self.cache:
-            self.input_cached.append(outputs_batch)
+            self.input_cached.append(outputs_batch.cpu())
 
     def predict_cached(self):
         """
@@ -235,9 +235,8 @@ class AccuracyEmbedding(Accuracy):
             raise ValueError("Caching is turned off")
         if len(self.input_cached) == 0:
             raise ValueError("Empty cached input buffer")
-        input = torch.cat(self.input_cached,  dim=0)
-        # the output device type is CPU
-        return self.predict(input)
+        input_cached = torch.cat(self.input_cached,  dim=0)
+        return self.predict(input_cached)
 
     def predict(self, outputs_test):
         argmin = self.distances(outputs_test).argmin(dim=1).cpu()

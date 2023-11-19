@@ -69,11 +69,20 @@ def get_layers_ordered(model, input_sample, ignore_layers=(nn.Sequential,),
 
     register_hooks(model)
 
-    input_sample = batch_to_cuda(input_sample)
+    model_params = tuple(model.parameters())
+    device = 'cpu' if len(model_params) == 0 else model_params[0].device.type
+    if device != 'cpu':
+        if isinstance(input_sample, torch.Tensor):
+            input_sample = input_sample.to(device=device)
+        else:
+            # iterable
+            input_sample = [t.to(device=device) for t in input_sample]
+
     with torch.no_grad():
         try:
             model(input_sample)
         except Exception as e:
+            layers_ordered.clear()
             model(input_sample.unsqueeze(dim=0))
 
     for handle in hooks:

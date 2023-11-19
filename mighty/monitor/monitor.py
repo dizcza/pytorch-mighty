@@ -919,6 +919,8 @@ class MonitorAutoencoder(MonitorEmbedding):
         else:
             # (2xB, H, W) images
             images_stacked.clamp_(0, 1)
+            if images_stacked.ndim == 3:
+                images_stacked.unsqueeze_(1)  # (B, 1, H, W)
             labels = [f'[{mode.upper()}] Original (Top)', 'Reconstructed', *labels]
             self.viz.images(images_stacked,
                             nrow=n_take, win=f'autoencoder {mode}', opts=dict(
