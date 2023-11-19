@@ -40,6 +40,7 @@ __all__ = [
     "input_from_batch",
     "find_layers",
     "find_named_layers",
+    "find_param_by_name",
     "set_seed",
     "clone_cpu"
 ]
@@ -143,6 +144,13 @@ def find_named_layers(model: nn.Module, layer_class, name_prefix=''):
                                      name_prefix=f"{name_prefix}.{name}")
     if isinstance(model, layer_class):
         yield name_prefix.lstrip('.'), model
+
+
+def find_param_by_name(module: nn.Module, name: str):
+    for _name, param in module.named_parameters():
+        if _name == name:
+            return param
+    return None
 
 
 def set_seed(seed: int):
