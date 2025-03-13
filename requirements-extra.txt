@@ -1,0 +1,8 @@
+# IDTxl
+h5py
+networkx
+jpype1
+pyopencl
+siphash24
+numba
+git+https://github.com/pwollstadt/IDTxl.git#egg=idtxl

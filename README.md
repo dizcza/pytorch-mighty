@@ -17,10 +17,10 @@ The Mighty Monitor Trainer for your pytorch models. Powered by [Visdom](https://
 
 Requires Python 3.6+
 
-1. Install [PyTorch](https://pytorch.org/):
-   * CPU backend: `conda install pytorch torchvision cpuonly -c pytorch`
-   * GPU backend: `conda install pytorch torchvision cudatoolkit=10.2 -c pytorch`
-2. `$ pip install pytorch-mighty`
+1. Install [PyTorch](https://pytorch.org/): `pip install torch torchvision`
+2. `pip install pytorch-mighty` or using the latest version `pip install -e .`
+3. (Optional) If you want to use the [IDTxl](https://github.com/pwollstadt/IDTxl) to estimate Mutual Information, run
+   `pip install -r requirements-extra.txt`
 
 
 ### Quick start

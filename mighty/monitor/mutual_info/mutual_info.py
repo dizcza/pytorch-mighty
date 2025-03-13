@@ -156,7 +156,11 @@ class MutualInfo(ABC):
         pass
 
     def _prepare_input_finished(self):
-        n_classes = len(np.unique(self.quantized['target']))
+        target = self.quantized['target']
+        if isinstance(target, np.ndarray):
+            n_classes = len(np.unique(target))
+        else:
+            n_classes = len(target.unique())
         self.accuracy_estimator = AccuracyFromMutualInfo(n_classes=n_classes)
 
     def prepare(self, model: nn.Module, monitor_layers=(nn.Linear,),

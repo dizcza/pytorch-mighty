@@ -69,7 +69,7 @@ class MutualInfoPCA(MutualInfo, ABC):
             if verbosity >= 1 else None
         for images, labels in self.data_loader.eval(description):
             images = images.flatten(start_dim=1)
-            images_transformed = pca.transform(images)
+            images_transformed = pca.transform(images.cpu())
             images_transformed = torch.from_numpy(images_transformed).float()
             inputs.append(images_transformed)
             targets.append(labels)
@@ -120,5 +120,5 @@ class MutualInfoPCA(MutualInfo, ABC):
                 # drop the last batch if it's smaller
                 continue
             images = images.flatten(start_dim=1)
-            pca.partial_fit(images)
+            pca.partial_fit(images.cpu())
         return pca

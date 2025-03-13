@@ -219,7 +219,7 @@ class MutualInfoGCMI(MutualInfoPCA):
     def _prepare_input_finished(self):
         super()._prepare_input_finished()
         for key in ['input', 'target']:
-            self.quantized[key] = self.quantized[key].numpy().T
+            self.quantized[key] = self.quantized[key].cpu().numpy().T
 
     def _process_activations(self, layer_name: str, activations: List[torch.FloatTensor]):
         pass

@@ -59,7 +59,7 @@ class MutualInfoIDTxl(MutualInfoPCA):
     def _prepare_input_finished(self):
         super()._prepare_input_finished()
         for key in ['input', 'target']:
-            self.quantized[key] = self.quantized[key].numpy().astype(np.float64)
+            self.quantized[key] = self.quantized[key].cpu().numpy().astype(np.float64)
 
     def _process_activations(self, layer_name: str, activations: List[torch.FloatTensor]):
         pass
