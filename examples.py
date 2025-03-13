@@ -129,7 +129,7 @@ def train_autoencoder(n_epoch=60, dataset_cls=MNIST):
 if __name__ == '__main__':
     set_seed(26)
     # torch.backends.cudnn.benchmark = True
-    # train_embedder()
-    train_mask()
+    train_embedder()
+    # train_mask()
     # train_autoencoder()
     # train_grad()
