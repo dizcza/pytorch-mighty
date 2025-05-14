@@ -134,6 +134,7 @@ class Trainer(ABC):
         self.online = self._init_online_measures()
         self.best_score = {}
         self.epoch_finished_callbacks = []
+        self.n_classes = 0  # no. of classes if supervised
 
     @property
     def epoch(self):
@@ -398,13 +399,28 @@ class Trainer(ABC):
         else:
             loader = self.data_loader.get(train)
 
+        proba_list = []
+        labels_list = []
         with torch.no_grad():
             for batch in loader:
                 batch = batch_to_cuda(batch)
                 output = self._forward(batch)
+                if isinstance(self.accuracy_measure, AccuracyArgmax) and self.data_loader.has_labels \
+                    and self.n_classes in (0, 2):
+                    proba = self.accuracy_measure.predict_proba(output)
+                    self.n_classes = proba.shape[1]
+                    if self.n_classes == 2:
+                        proba_list.append(proba)
+                        batch_input, batch_labels = batch
+                        labels_list.append(batch_labels)
                 loss = self._get_loss(batch, output)
                 self._on_forward_pass_batch(batch, output, train)
                 loss_online.update(loss)
+
+        if len(labels_list):
+            labels_true = torch.cat(labels_list)
+            proba_list = torch.cat(proba_list)
+            self.monitor.update_precision_recall(proba_list, labels_true, train)
 
         self.mutual_info.finish_listening()
         self.model.train(mode_saved)
@@ -467,9 +483,9 @@ class Trainer(ABC):
             warnings.warn("'labels_pred' is a cuda tensor")
             labels_pred = labels_pred.cpu()
 
-        accuracy = self.monitor.update_accuracy_epoch(
-            labels_pred, labels_true, mode='train' if train else 'test')
-        self.update_best_score(accuracy, score_type='accuracy')
+        mode = 'train' if train else 'test'
+        accuracy = self.monitor.update_accuracy_epoch(labels_pred, labels_true, mode=mode)
+        self.update_best_score(accuracy, score_type=f'accuracy-{mode}')
 
         return accuracy
 

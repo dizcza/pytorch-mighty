@@ -203,6 +203,11 @@ class SumOnlineBatch:
         self.sum = None
         self.count = 0
 
+    def get_mean(self):
+        if self.sum is None:
+            return None
+        return self.sum.clone() / self.count
+
 
 class VarianceOnlineBatch(VarianceOnline):
     """

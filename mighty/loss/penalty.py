@@ -5,6 +5,7 @@ import torch.nn as nn
 class LossPenalty(nn.Module):
     """
     A wrapper for reconstruction `loss` with a norm penalty.
+    Penalty sparsifies the latent vector.
 
     Parameters
     ----------

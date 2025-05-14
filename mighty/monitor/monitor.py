@@ -30,6 +30,7 @@ import torch.nn as nn
 import torch.utils.data
 from sklearn.metrics import confusion_matrix
 import torch.nn.functional as F
+from torcheval.metrics.functional import binary_precision_recall_curve, auc, binary_auprc
 
 from mighty.monitor.accuracy import calc_accuracy, Accuracy
 from mighty.monitor.batch_timer import timer, ScheduleExp
@@ -211,7 +212,7 @@ class Monitor:
         Default: None
     """
 
-    n_classes_format_ytickstep_1 = 10
+    n_classes_format_ytickstep_1 = 15
 
     def __init__(self, mutual_info=None, normalize_inverse=None):
         self.timer = timer
@@ -338,6 +339,24 @@ class Monitor:
         self.mutual_info.force_update(model)
         self.update_mutual_info()
         self.update_gradient_signal_to_noise_ratio()
+
+    def update_precision_recall(self, proba, labels_true, train=True):
+        if proba.shape[1] == 2:
+            mode = 'Train' if train else 'Test'
+            proba = proba[:, 1]
+            prec, recall, thr = binary_precision_recall_curve(proba.cuda(), labels_true.cuda())
+            self.viz.line(Y=torch.stack([prec[:-1], thr], dim=1), X=recall[:-1],
+                          win=f'prec-recall-{mode}', opts=dict(
+                    xlabel='Recall',
+                    ylabel='Precision',
+                    title=f'Precision Recall {mode}',
+                    legend=['precision', 'threshold']
+                ))
+            self.viz.line_update(auc(recall, prec, reorder=True).item(), opts=dict(
+                xlabel='Epoch',
+                ylabel='Area Under Curve',
+                title='Precision Recall AUC'
+            ), name=mode.lower())
 
     def update_loss(self, loss, mode='batch'):
         """
@@ -515,6 +534,7 @@ class Monitor:
         accuracy : torch.Tensor
             A scalar tensor with one value - accuracy.
         """
+        logscale = getattr(self, "logscale", False)
         accuracy = calc_accuracy(labels_true, labels_pred)
         self.update_accuracy(accuracy=accuracy, mode=mode)
         title = f"Confusion matrix '{mode}'"
@@ -524,6 +544,10 @@ class Monitor:
                 onehot = F.one_hot(labels_pred, num_classes=labels_true.shape[1])
                 labels_true = (labels_true * onehot).argmax(dim=1)
             confusion = confusion_matrix(labels_true, labels_pred)
+            if logscale:
+                confusion = confusion.astype(np.float32)
+                confusion[confusion == 0] = np.nan
+                confusion = np.log(confusion)
             self.viz.heatmap(confusion, win=title, opts=dict(
                 title=title,
                 xlabel='Predicted label',

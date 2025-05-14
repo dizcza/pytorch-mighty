@@ -1,6 +1,7 @@
 from collections import namedtuple
 
 import torch.nn as nn
+from mighty.models.mlp import DropConnect
 
 AutoencoderOutput = namedtuple("AutoencoderOutput",
                                ("latent", "reconstructed"))
@@ -39,12 +40,15 @@ class AutoencoderLinear(nn.Module):
 
     """
 
-    def __init__(self, *fc_sizes, p_drop=0.5, p_drop_input=0.25):
+    def __init__(self, *fc_sizes, p=0.5, p_input=0.25, p_connect=0.25):
         super().__init__()
         encoder = []
         for in_features, out_features in zip(fc_sizes[:-1], fc_sizes[1:]):
-            encoder.append(nn.Dropout(p=p_drop_input if in_features == fc_sizes[0] else p_drop))
-            encoder.append(nn.Linear(in_features, out_features))
+            encoder.append(nn.Dropout(p=p_input if in_features == fc_sizes[0] else p))
+            linear = nn.Linear(in_features, out_features)
+            if p_connect is not None and p_connect > 0:
+                linear = DropConnect(linear, p=p_connect)
+            encoder.append(linear)
             encoder.append(nn.ReLU(inplace=True))
 
         self.encoding_dim = fc_sizes[-1]
@@ -52,7 +56,7 @@ class AutoencoderLinear(nn.Module):
         decoder = []
         fc_sizes = fc_sizes[::-1]
         for in_features, out_features in zip(fc_sizes[:-1], fc_sizes[1:]):
-            decoder.append(nn.Dropout(p=p_drop))
+            decoder.append(nn.Dropout(p=p))
             decoder.append(nn.Linear(in_features, out_features))
             decoder.append(nn.ReLU(inplace=True))
         decoder.pop()  # remove the last ReLU layer

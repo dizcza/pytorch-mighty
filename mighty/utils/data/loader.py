@@ -128,7 +128,7 @@ class DataLoader:
                 break
             yield batch
 
-    def sample(self):
+    def sample(self, train=True):
         """
         Returns the first batch from :meth:`DataLoader.eval`.
 
@@ -140,7 +140,9 @@ class DataLoader:
             A tensor or a batch of tensors.
 
         """
-        return next(iter(self.eval()))
+        if train:
+            return next(iter(self.eval()))
+        return next(iter(self.get(train)))
 
     @staticmethod
     def _shorten(str_repr):
