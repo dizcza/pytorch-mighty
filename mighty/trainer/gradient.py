@@ -58,25 +58,28 @@ class TrainerGrad(Trainer):
                 ytype='log',
             ))
 
-        if self.scheduler is not None:
+        if self.scheduler is not None and self.optimizer is not None:
             self.monitor.register_func(learning_rate)
 
     def log_trainer(self):
         super().log_trainer()
-        optimizer_str = f"Optimizer {self.optimizer.__class__.__name__}:"
-        for group_id, group in enumerate(self.optimizer.param_groups):
-            optimizer_str += f"\n\tgroup {group_id}: lr={group['lr']}, weight_decay={group['weight_decay']}"
-        self.monitor.log(optimizer_str)
+        if self.optimizer is not None:
+            optimizer_str = f"Optimizer {self.optimizer.__class__.__name__}:"
+            for group_id, group in enumerate(self.optimizer.param_groups):
+                optimizer_str += f"\n\tgroup {group_id}: lr={group['lr']}, weight_decay={group['weight_decay']}"
+            self.monitor.log(optimizer_str)
 
     def train_batch(self, batch):
-        self.optimizer.zero_grad()
+        if self.optimizer is not None:
+            self.optimizer.zero_grad()
         outputs = self._forward(batch)
         loss = self._get_loss(batch, outputs)
         if torch.isnan(loss).item():
             warnings.warn("NaN loss")
         else:
             loss.backward()
-            self.optimizer.step(closure=None)
+            if self.optimizer is not None:
+                self.optimizer.step(closure=None)
         return loss
 
     def _epoch_finished(self, loss):
@@ -88,19 +91,20 @@ class TrainerGrad(Trainer):
 
     def state_dict(self):
         state = super().state_dict()
-        state['optimizer'] = self.optimizer.state_dict()
+        if self.optimizer is not None:
+            state['optimizer'] = self.optimizer.state_dict()
         state['criterion'] = self.criterion.state_dict()
         if self.scheduler is not None:
             state['scheduler'] = self.scheduler.state_dict()
         return state
 
     def restore(self, checkpoint_path=None, best=None, strict=True):
-        checkpoint_state = super().restore(checkpoint_path, best=best,
-                                           strict=strict)
+        checkpoint_state = super().restore(checkpoint_path, best=best, strict=strict)
         try:
             if checkpoint_state is not None:
-                self.optimizer.load_state_dict(checkpoint_state['optimizer'])
-                self.criterion.load_state_dict(checkpoint_state['criterion'])
+                if self.optimizer is not None:
+                    self.optimizer.load_state_dict(checkpoint_state['optimizer'])
+                self.criterion.load_state_dict(checkpoint_state['criterion'], strict=strict)
                 scheduler_state = checkpoint_state.get('scheduler')
                 if self.scheduler is not None and scheduler_state is not None:
                     self.scheduler.load_state_dict(scheduler_state)

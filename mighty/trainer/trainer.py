@@ -135,6 +135,7 @@ class Trainer(ABC):
         self.best_score = {}
         self.epoch_finished_callbacks = []
         self.n_classes = 0  # no. of classes if supervised
+        self.training = True
 
     @property
     def epoch(self):
@@ -271,6 +272,8 @@ class Trainer(ABC):
         --------
         restore : restore the training progress
         """
+        if not self.training:
+            return
         checkpoint_path = self.checkpoint_path(best)
         checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
         try:
@@ -323,8 +326,7 @@ class Trainer(ABC):
         map_location = None
         if not torch.cuda.is_available():
             map_location = 'cpu'
-        checkpoint_state = torch.load(checkpoint_path,
-                                      map_location=map_location)
+        checkpoint_state = torch.load(checkpoint_path, map_location=map_location, weights_only=True)
         try:
             self.model.load_state_dict(checkpoint_state['model_state'],
                                        strict=strict)
@@ -517,6 +519,18 @@ class Trainer(ABC):
         mode_saved.restore(self.model)
         return image, label
 
+    def is_test_mode(self):
+        params = [param for param in self.model.parameters() if param.requires_grad]
+        return len(params) == 0 and not self.model.training
+
+    def test(self):
+        self.training = False
+        self.monitor.viz.close()
+        self.model.eval()
+        for param in self.model.parameters():
+            param.requires_grad_(False)
+        self.train(n_epochs=1)
+
     def train_epoch(self, epoch):
         """
         Trains an epoch.
@@ -533,7 +547,11 @@ class Trainer(ABC):
                           disable=self.verbosity < 2,
                           leave=False):
             batch = batch_to_cuda(batch)
-            loss = self.train_batch(batch)
+            if self.is_test_mode():
+                outputs = self._forward(batch)
+                loss = self._get_loss(batch, outputs)
+            else:
+                loss = self.train_batch(batch)
             loss_online.update(loss.detach().cpu())
             for name, param in self.model.named_parameters():
                 if torch.isnan(param).any():
